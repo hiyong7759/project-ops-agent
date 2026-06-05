@@ -10,6 +10,7 @@ EXPECTED_MARKERS = ("expected", "기대", "원하는", "되어야", "해야", "�
 OBSERVED_MARKERS = ("actual", "현재", "실제", "오류", "에러", "버그", "안됨", "실패", "장애")
 REPRO_MARKERS = ("reproduce", "repro", "steps", "재현", "단계", "환경", "조건")
 MULTIPLE_PATH_MARKERS = ("또는", "혹은", "아니면", "선택", "정책", "방향", "or ")
+AGENT_COMMENT_MARKER = "<!-- project-ops-agent:"
 
 POLICY_KEYWORDS = {
     "db_migration": ("migration", "schema", "table", "column", "db ", "database", "마이그레이션", "스키마", "테이블", "컬럼"),
@@ -60,7 +61,7 @@ class IssueAnalyzer:
 
 
 def _combined_text(issue: Issue, comments: list[Comment]) -> str:
-    comment_text = "\n".join(comment.body for comment in comments)
+    comment_text = "\n".join(comment.body for comment in comments if AGENT_COMMENT_MARKER not in comment.body)
     return f"{issue.title}\n{issue.description}\n{comment_text}".strip()
 
 
@@ -99,4 +100,3 @@ def _related_keywords(text: str) -> list[str]:
         if len(result) >= 8:
             break
     return result
-

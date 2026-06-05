@@ -56,6 +56,19 @@ permissions:
   pull-requests: write
 ```
 
+Pull Request를 GitHub Actions의 `GITHUB_TOKEN`으로 생성하려면 repository 설정도 맞아야 합니다.
+
+GitHub에서 **Settings > Actions > General > Workflow permissions**를 열고 다음을 선택합니다.
+
+- **Read and write permissions**
+- **Allow GitHub Actions to create and approve pull requests**
+
+이 설정이 꺼져 있으면 workflow 로그에 `PullRequests: write`가 보여도 PR 생성 API에서 다음 오류가 날 수 있습니다.
+
+```text
+GitHub POST /pulls failed: HTTP Error 403: Forbidden
+```
+
 ## 기본 profile
 
 기본 GitHub profile은 현재 checkout을 그대로 사용합니다.
@@ -181,5 +194,7 @@ PR이 생성되고 이슈가 `agent:needs-user-test`가 되면 PR을 직접 확�
 ## Token
 
 기본 `GITHUB_TOKEN`은 workflow 권한에 `contents: write`, `issues: write`, `pull-requests: write`가 있으면 MVP 검증에 충분합니다.
+
+단, PR 생성까지 검증하려면 repository의 Workflow permissions가 `Read and write permissions`로 설정되어 있고, GitHub Actions의 PR 생성이 허용되어 있어야 합니다.
 
 조직 정책이 더 엄격하거나 cross-repository 검증이 필요하면 contents, issues, pull requests write 권한이 있는 fine-grained personal access token을 별도 secret으로 사용할 수 있습니다.
