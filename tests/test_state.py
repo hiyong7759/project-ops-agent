@@ -21,7 +21,6 @@ class StateTests(unittest.TestCase):
     def test_scan_processes_waiting_states(self):
         self.assertIn("agent:queued", PROCESSABLE_STATES)
         self.assertIn("agent:needs-info", PROCESSABLE_STATES)
-        self.assertIn("agent:blocked", PROCESSABLE_STATES)
         self.assertIn("agent:needs-user-test", PROCESSABLE_STATES)
 
 

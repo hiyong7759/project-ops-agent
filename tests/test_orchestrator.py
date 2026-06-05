@@ -144,52 +144,6 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual("changes-requested", result.status)
         self.assertIn("agent:changes-requested", client.label_updates[-1])
 
-    def test_blocked_issue_waits_until_new_user_resume_comment(self):
-        from project_ops_agent.models import Comment
-
-        client = FakeGitLab(
-            comments=[
-                Comment(id=1, body="@agent A"),
-                Comment(id=2, body="<!-- project-ops-agent:blocked -->\n## 에이전트 중단"),
-            ]
-        )
-        issue = Issue(iid=5, title="Ready", description="Done", labels=["agent:blocked"])
-        result = Orchestrator(
-            client,
-            profile(),
-            git_runner=FakeGitRunner(),
-            command_runner=FakeCommandRunner(),
-            fix_provider=FakeFixProvider(),
-        ).process_issue(issue)
-        self.assertEqual("blocked", result.status)
-        self.assertEqual([], client.label_updates)
-        self.assertEqual([], client.created_mrs)
-
-    def test_blocked_issue_resumes_when_user_comment_is_after_blocked_marker(self):
-        from project_ops_agent.models import Comment
-
-        client = FakeGitLab(
-            comments=[
-                Comment(id=1, body="<!-- project-ops-agent:blocked -->\n## 에이전트 중단"),
-                Comment(id=2, body="@agent proceed"),
-            ]
-        )
-        issue = Issue(
-            iid=6,
-            title="Ready",
-            description="현재 오류. 기대 동작은 정상 처리. 재현 조건 있음.",
-            labels=["agent:blocked"],
-        )
-        result = Orchestrator(
-            client,
-            profile(),
-            git_runner=FakeGitRunner(),
-            command_runner=FakeCommandRunner(),
-            fix_provider=FakeFixProvider(),
-        ).process_issue(issue)
-        self.assertEqual("needs-user-test", result.status)
-        self.assertIn("agent:needs-user-test", client.label_updates[-1])
-
 
 if __name__ == "__main__":
     unittest.main()

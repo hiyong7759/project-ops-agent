@@ -42,8 +42,6 @@ python3 -m unittest discover -s tests
 - MR/PR 보고서가 table과 `<details>` 섹션을 사용하는지
 - 사용자-facing 보고서 핵심 문구가 한국어인지
 - demo `fix.command`가 검증용 산출물을 생성하고 잘못된 입력을 거부하는지
-- `agent:blocked` 이후 새 사용자 재개 댓글이 있으면 scan에서 다시 처리되는지
-- 에이전트 marker가 있는 과거 댓글이 다음 이슈 분석 입력에서 제외되는지
 
 ## 실제 운영 검증
 

@@ -38,8 +38,6 @@ permissions:
 
 token은 기본 `GITHUB_TOKEN`으로 시작할 수 있습니다. cross-repository 작업이나 조직 정책이 까다로운 경우 fine-grained personal access token을 사용합니다.
 
-GitHub Actions에서 PR 생성까지 맡기려면 repository 설정도 필요합니다. **Settings > Actions > General > Workflow permissions**에서 **Read and write permissions**와 **Allow GitHub Actions to create and approve pull requests**를 켭니다.
-
 ## 사내 GitLab 프로젝트
 
 사내 GitLab은 외부에서 접근할 수 없는 경우가 많으므로 runner 위치가 중요합니다.
