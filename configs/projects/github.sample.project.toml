@@ -1,0 +1,53 @@
+[project]
+key = "personal-demo"
+name = "Personal GitHub Demo"
+platform = "github"
+
+[github]
+owner = "your-github-id"
+repo = "your-repo"
+default_branch = "main"
+repo_http_url = "https://github.com/your-github-id/your-repo.git"
+api_url = "https://api.github.com"
+
+[agent]
+branch_prefix = "agent"
+can_push_branch = true
+can_create_mr = true
+can_merge = false
+
+[commands]
+install = ""
+lint = ""
+test = "python -m unittest discover -s tests"
+
+[fix]
+command = ""
+timeout_seconds = 1800
+
+[policy]
+require_info_when = [
+  "requirement_ambiguous",
+  "expected_behavior_missing",
+  "reproduction_missing",
+  "multiple_solution_paths"
+]
+require_approval_before_fix_when = [
+  "db_migration",
+  "auth_change",
+  "payment_change",
+  "production_config_change",
+  "destructive_change"
+]
+forbidden_paths = [
+  ".github/workflows/**",
+  "infra/**",
+  "secrets/**"
+]
+
+[review]
+reviewers = []
+
+[workspace]
+root = "workspaces"
+use_current_checkout = true

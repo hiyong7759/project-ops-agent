@@ -1,0 +1,51 @@
+[project]
+key = "order-api"
+name = "Order API"
+platform = "gitlab"
+
+[gitlab]
+url = "https://gitlab.company.local"
+project_id = "123"
+default_branch = "main"
+repo_http_url = "https://gitlab.company.local/group/order-api.git"
+
+[agent]
+branch_prefix = "agent"
+can_push_branch = true
+can_create_mr = true
+can_merge = false
+
+[commands]
+install = "npm ci"
+lint = "npm run lint"
+test = "npm test"
+
+[fix]
+command = ""
+timeout_seconds = 1800
+
+[policy]
+require_info_when = [
+  "requirement_ambiguous",
+  "expected_behavior_missing",
+  "reproduction_missing",
+  "multiple_solution_paths"
+]
+require_approval_before_fix_when = [
+  "db_migration",
+  "auth_change",
+  "payment_change",
+  "production_config_change",
+  "destructive_change"
+]
+forbidden_paths = [
+  ".gitlab-ci.yml",
+  "infra/**",
+  "secrets/**"
+]
+
+[review]
+reviewers = ["backend-lead"]
+
+[workspace]
+root = "workspaces"
