@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .clarification import has_marker, latest_agent_decision, latest_user_test_result
+from .clarification import has_marker, latest_agent_decision, latest_agent_decision_after_marker, latest_user_test_result
 from .command_runner import CommandRunner
 from .fix_provider import ExternalFixProvider
 from .git_runner import GitRunner
@@ -11,6 +11,7 @@ from .state import with_agent_state, with_risk_label
 from .state import PROCESSABLE_STATES, current_agent_state
 from .templates import (
     ANALYSIS_MARKER,
+    BLOCKED_MARKER,
     MR_COMMENT_MARKER,
     NEEDS_INFO_MARKER,
     render_blocked,
@@ -59,6 +60,10 @@ class Orchestrator:
             return self._process_user_test(issue, comments)
 
         decision = latest_agent_decision(comments)
+        if state == "agent:blocked":
+            decision = latest_agent_decision_after_marker(comments, BLOCKED_MARKER)
+            if not decision:
+                return ProcessResult("blocked", "중단 상태입니다. 이슈 댓글에 `@agent proceed` 또는 `@agent A`를 남기면 재시도합니다.", issue.iid)
 
         self._set_labels(issue, "agent:analyzing")
         analysis = self.analyzer.analyze(issue, comments, decision=decision)
@@ -100,7 +105,7 @@ class Orchestrator:
 
             fix_result = self.fix_provider.apply(workspace, issue, analysis, comments)
             if not fix_result.success:
-                return self._block(issue, fix_result.summary or "Fix command failed.")
+                return self._block(issue, fix_result.summary or "수정 명령이 실패했습니다.")
 
             changed_files = self.git_runner.changed_files(workspace)
             changed_files = changed_files or fix_result.files_changed

@@ -26,7 +26,21 @@ class IssueAnalyzerTests(unittest.TestCase):
         self.assertIn("payment_change", analysis.policy_flags)
         self.assertEqual("high", analysis.risk)
 
+    def test_agent_marker_comments_are_ignored_for_analysis_input(self):
+        issue = Issue(iid=4, title="로그인 오류", description="로그인이 안됩니다")
+        comments = [
+            Comment(
+                id=1,
+                body="<!-- project-ops-agent:analysis -->\n- Expected behavior: not found\n- Reproduction: not found",
+                author_username="github-actions",
+            ),
+            Comment(id=2, body="@agent A", author_username="user"),
+        ]
+        analysis = IssueAnalyzer().analyze(issue, comments)
+        self.assertEqual("", analysis.expected_behavior)
+        self.assertEqual("", analysis.reproduction)
+        self.assertIn("로그인", analysis.related_keywords)
+
 
 if __name__ == "__main__":
     unittest.main()
-

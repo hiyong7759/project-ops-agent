@@ -16,6 +16,7 @@ AGENT_STATES = (
 PROCESSABLE_STATES = (
     "agent:queued",
     "agent:needs-info",
+    "agent:blocked",
     "agent:needs-user-test",
 )
 
