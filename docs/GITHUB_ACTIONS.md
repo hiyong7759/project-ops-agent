@@ -1,6 +1,6 @@
 # GitHub Actions MVP
 
-Personal GitHub repositories can validate the same operations loop without a company GitLab runner.
+Personal GitHub repositories can validate the same operations loop without a company GitLab runner. This repository includes `.github/workflows/project-ops-agent.yml` for the `hiyong7759/project-ops-agent` MVP validation target.
 
 ## Flow
 
@@ -20,44 +20,62 @@ GitHub Issue labeled agent:queued
 
 ## Workflow
 
-Create `.github/workflows/project-ops-agent.yml` in the personal test repository:
+The workflow name shown in GitHub Actions is:
+
+```text
+Project Ops Agent MVP
+```
+
+It supports manual runs with `workflow_dispatch`. A 10-minute schedule is included in the workflow file as a commented option so the MVP can start with explicit runs.
+
+The workflow runs this command:
+
+```bash
+python -m project_ops_agent.cli scan --config configs/projects/github.sample.project.toml
+```
+
+with these repository permissions:
 
 ```yaml
-name: Project Ops Agent
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "*/10 * * * *"
-
 permissions:
   contents: write
   issues: write
   pull-requests: write
-
-jobs:
-  agent:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m pip install -e .
-      - run: python -m project_ops_agent.cli scan --config configs/projects/github.sample.project.toml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PYTHONDONTWRITEBYTECODE: "1"
 ```
 
 The sample GitHub profile uses:
 
 ```toml
+[github]
+owner = "hiyong7759"
+repo = "project-ops-agent"
+repo_http_url = "https://github.com/hiyong7759/project-ops-agent.git"
+
 [workspace]
 use_current_checkout = true
 ```
 
 That makes the agent operate on the repository already checked out by `actions/checkout`, avoiding a second clone and private-repository credential issues.
+
+## Manual Validation
+
+1. Push the workflow and sample config changes to `main`.
+2. In GitHub, open **Actions**.
+3. Select **Project Ops Agent MVP**.
+4. Click **Run workflow**.
+5. Keep the branch as `main`.
+6. Click **Run workflow** again in the dialog.
+
+The included sample profile keeps `fix.command = ""`, so the first live run is best used to verify GitHub issue discovery, analysis comments, labels, and the `agent:needs-info` loop. To validate branch push, PR creation, and `agent:needs-user-test`, configure a safe project-specific `fix.command` first.
+
+Before running against real issues, verify locally from WSL:
+
+```bash
+cd ~/workspace/project-ops-agent
+export PYTHONPATH=src
+export PYTHONDONTWRITEBYTECODE=1
+python3 -m unittest discover -s tests
+```
 
 ## Labels
 
@@ -80,6 +98,42 @@ risk:high
 ```
 
 The name `agent:mr-created` is kept for compatibility with the GitLab flow. In GitHub it means a Pull Request was created.
+
+## Test Issue Example
+
+Create an issue and add the `agent:queued` label:
+
+```markdown
+Title: Add a smoke test for the agent CLI
+
+Body:
+현재 GitHub Actions에서 project-ops-agent CLI가 기본 테스트 경로로 실행되는지 확인하고 싶습니다.
+
+기대 동작:
+- `python -m unittest discover -s tests`가 성공해야 합니다.
+- PR 본문에는 table과 details 기반 Agent Report가 있어야 합니다.
+
+재현/검증:
+- GitHub Actions의 Project Ops Agent MVP workflow를 수동 실행합니다.
+```
+
+If the agent asks for clarification, answer in the issue comment:
+
+```text
+@agent A
+```
+
+After the PR is created and the issue moves to `agent:needs-user-test`, test the PR manually. Record the result on the linked issue:
+
+```text
+@agent test-pass
+```
+
+or:
+
+```text
+@agent test-fail workflow still fails during unittest discovery
+```
 
 ## Token Notes
 

@@ -4,10 +4,10 @@ name = "Personal GitHub Demo"
 platform = "github"
 
 [github]
-owner = "your-github-id"
-repo = "your-repo"
+owner = "hiyong7759"
+repo = "project-ops-agent"
 default_branch = "main"
-repo_http_url = "https://github.com/your-github-id/your-repo.git"
+repo_http_url = "https://github.com/hiyong7759/project-ops-agent.git"
 api_url = "https://api.github.com"
 
 [agent]

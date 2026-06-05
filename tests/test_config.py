@@ -16,7 +16,9 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual("github", profile.platform)
         self.assertEqual("main", profile.default_branch)
         self.assertEqual("https://api.github.com", profile.github.api_url)
-        self.assertTrue(profile.repo_http_url.endswith("/your-repo.git"))
+        self.assertEqual("hiyong7759", profile.github.owner)
+        self.assertEqual("project-ops-agent", profile.github.repo)
+        self.assertEqual("https://github.com/hiyong7759/project-ops-agent.git", profile.repo_http_url)
         self.assertTrue(profile.workspace.use_current_checkout)
 
 

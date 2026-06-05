@@ -1,0 +1,39 @@
+name: Project Ops Agent MVP
+
+on:
+  workflow_dispatch:
+  # Uncomment for periodic MVP scans.
+  # schedule:
+  #   - cron: "*/10 * * * *"
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Configure git author
+        run: |
+          git config user.name "project-ops-agent[bot]"
+          git config user.email "project-ops-agent[bot]@users.noreply.github.com"
+
+      - name: Install agent
+        run: python -m pip install -e .
+
+      - name: Scan queued issues
+        run: python -m project_ops_agent.cli scan --config configs/projects/github.sample.project.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONDONTWRITEBYTECODE: "1"

@@ -117,6 +117,8 @@ $env:GITHUB_TOKEN = "..."
 python -m project_ops_agent.cli scan --config configs/projects/github.sample.project.toml
 ```
 
+For personal GitHub Actions validation, see `docs/GITHUB_ACTIONS.md`. The included workflow is named `Project Ops Agent MVP`.
+
 Process a single issue:
 
 ```powershell
