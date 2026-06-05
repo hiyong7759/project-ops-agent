@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
             FixResult(success=True, summary=fixture.get("fix_summary", "Example fix summary.")),
             [CommandResult(command="example", exit_code=0, stdout="ok")],
             fixture.get("changed_files", []),
-            ["Local render only", f"Project profile loaded: {profile.key}"],
+            ["로컬 보고서 렌더링", f"프로젝트 설정 로드: {profile.key}"],
         )
         print(report)
         return 0

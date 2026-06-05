@@ -23,7 +23,7 @@ class ExternalFixProvider:
             return FixResult(
                 success=False,
                 skipped=True,
-                summary="No fix.command configured for this project.",
+                summary="이 프로젝트에는 fix.command가 설정되어 있지 않습니다.",
             )
 
         context = {
@@ -56,7 +56,7 @@ class ExternalFixProvider:
         if result.returncode != 0:
             return FixResult(
                 success=False,
-                summary="Fix command failed.",
+                summary="수정 명령이 실패했습니다.",
                 stdout=result.stdout,
                 stderr=result.stderr,
             )
@@ -79,4 +79,3 @@ def _parse_fix_result(stdout: str, stderr: str) -> FixResult:
         stdout=stdout,
         stderr=stderr,
     )
-

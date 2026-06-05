@@ -84,9 +84,9 @@ class E2EFixProvider:
     def apply(self, workspace, issue, analysis, comments):
         return FixResult(
             success=True,
-            summary="Applied a minimal fix and added regression coverage.",
+            summary="최소 수정과 회귀 테스트를 추가했습니다.",
             files_changed=["src/demo.py", "tests/test_demo.py"],
-            commit_message=f"Fix issue #{issue.iid}: {issue.title}\n\nRefs #{issue.iid}",
+            commit_message=f"이슈 #{issue.iid} 수정: {issue.title}\n\nRefs #{issue.iid}",
         )
 
 
@@ -139,14 +139,14 @@ class E2EWorkflowTests(unittest.TestCase):
         first = orchestrator.process_queued(limit=10)
         self.assertEqual("needs-info", first[0].status)
         self.assertIn("agent:needs-info", issue.labels)
-        self.assertTrue(any("Agent Needs Info" in comment.body for comment in platform.comments))
+        self.assertTrue(any("에이전트 추가 정보 필요" in comment.body for comment in platform.comments))
 
         platform.comments.append(Comment(id=99, body="@agent A", author_username="user"))
         second = orchestrator.process_queued(limit=10)
         self.assertEqual("needs-user-test", second[0].status)
         self.assertIn("agent:needs-user-test", issue.labels)
         self.assertEqual(1, len(platform.created_mrs))
-        self.assertIn("User Test Gate", platform.created_mrs[0]["description"])
+        self.assertIn("사용자 테스트 게이트", platform.created_mrs[0]["description"])
 
         platform.comments.append(Comment(id=100, body="@agent test-pass", author_username="user"))
         third = orchestrator.process_queued(limit=10)
@@ -156,4 +156,3 @@ class E2EWorkflowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

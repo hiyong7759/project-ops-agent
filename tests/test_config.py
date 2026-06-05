@@ -21,6 +21,12 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual("https://github.com/hiyong7759/project-ops-agent.git", profile.repo_http_url)
         self.assertTrue(profile.workspace.use_current_checkout)
 
+    def test_load_github_demo_profile(self):
+        profile = load_project_profile(Path("configs/projects/github.demo.project.toml"))
+        self.assertEqual("github", profile.platform)
+        self.assertEqual("python scripts/demo_fix_command.py", profile.fix.command)
+        self.assertTrue(profile.workspace.use_current_checkout)
+
 
 if __name__ == "__main__":
     unittest.main()

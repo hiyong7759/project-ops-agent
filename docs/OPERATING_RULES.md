@@ -1,63 +1,75 @@
-# Operating Rules
+# 운영 규칙
 
-## Core Rules
+## 핵심 원칙
 
-1. The selected issue platform is the only source of truth.
-2. Human answers must be written in issue comments.
-3. Messenger tools may notify, but they must not collect decisions in the MVP.
-4. The agent may create branches and MRs.
-5. The agent must not merge.
-6. The agent must stop before code changes when requirements are unclear.
-7. The MR description is a report, not a casual summary.
+1. 선택한 이슈 플랫폼이 단일 source of truth입니다.
+2. 사용자 결정은 반드시 이슈 댓글에 남겨야 합니다.
+3. 메신저는 알림 용도로만 사용할 수 있으며, MVP에서는 결정을 수집하지 않습니다.
+4. 에이전트는 브랜치와 MR/PR을 만들 수 있습니다.
+5. 에이전트는 MR/PR을 merge하지 않습니다.
+6. 요구사항이 모호하면 코드 변경 전에 멈춰야 합니다.
+7. MR/PR 본문은 단순 요약이 아니라 리뷰어용 보고서입니다.
+8. 사용자에게 보이는 이슈 댓글과 MR/PR 보고서는 한국어로 작성합니다.
 
-## Labels
+## 언어 가이드라인
 
-Only one `agent:*` state label should exist on an issue at a time.
+사용자-facing 산출물은 한국어를 기본으로 합니다.
 
-| Label | Meaning |
+- 이슈 분석 댓글은 한국어로 작성합니다.
+- 추가 정보 요청 댓글은 한국어로 작성합니다.
+- MR/PR 보고서 제목, 표, 요약, 접이식 상세 섹션은 한국어로 작성합니다.
+- 사용자 테스트 안내는 한국어로 작성합니다.
+- 사용자가 답해야 하는 명령 형식은 원문을 유지합니다. 예: `@agent A`, `@agent test-pass`
+- label, branch name, JSON field, CLI command 같은 시스템 식별자는 원문을 유지합니다.
+
+## Label
+
+이슈에는 한 번에 하나의 `agent:*` 상태 label만 있어야 합니다.
+
+| Label | 의미 |
 | --- | --- |
-| `agent:queued` | Issue is ready for agent processing |
-| `agent:analyzing` | Agent is analyzing the issue |
-| `agent:needs-info` | Agent is waiting for human direction |
-| `agent:fixing` | Agent is changing code |
-| `agent:verifying` | Agent is running verification |
-| `agent:mr-created` | Agent created an MR |
-| `agent:needs-user-test` | MR/PR exists and human user testing is required |
-| `agent:changes-requested` | User testing failed or requested a revision |
-| `agent:blocked` | Agent cannot continue |
-| `agent:done` | Work is complete |
+| `agent:queued` | 에이전트가 처리할 준비가 된 이슈 |
+| `agent:analyzing` | 에이전트가 이슈를 분석 중 |
+| `agent:needs-info` | 사용자 방향 결정 또는 추가 정보 대기 |
+| `agent:fixing` | 에이전트가 코드 변경 중 |
+| `agent:verifying` | 에이전트가 검증 명령 실행 중 |
+| `agent:mr-created` | 에이전트가 MR/PR을 생성함 |
+| `agent:needs-user-test` | MR/PR 생성 후 사용자 테스트 대기 |
+| `agent:changes-requested` | 사용자 테스트 실패 또는 변경 요청 |
+| `agent:blocked` | 에이전트가 더 진행할 수 없음 |
+| `agent:done` | 작업 완료 |
 
-Risk labels:
+위험도 label:
 
-| Label | Meaning |
+| Label | 의미 |
 | --- | --- |
-| `risk:low` | Small localized change |
-| `risk:medium` | Meaningful behavior or verification risk |
-| `risk:high` | Production-sensitive or approval-required area |
+| `risk:low` | 작고 국소적인 변경 |
+| `risk:medium` | 동작 또는 검증 리스크가 있는 변경 |
+| `risk:high` | 운영 민감 영역 또는 승인 필요 영역 |
 
-## Clarification Format
+## 추가 정보 요청 형식
 
-When the agent needs direction, it writes:
+에이전트가 방향 결정이 필요하면 이슈에 다음 형태의 댓글을 남깁니다.
 
 ```markdown
-## Agent Needs Info
+## 에이전트 추가 정보 필요
 
-### What I understood
+### 제가 이해한 내용
 - ...
 
-### Ambiguous points
+### 모호하거나 승인 확인이 필요한 지점
 - ...
 
-### Options
-- A: ...
-- B: ...
-- C: ...
+### 선택지
+- A: 현재 정책은 유지하고 보고된 예외만 수정합니다.
+- B: 동작 정책을 의도적으로 변경합니다.
+- C: 원인 분석까지만 진행하고 코드 수정은 만들지 않습니다.
 
-### Reply format
+### 답변 형식
 `@agent A`
 ```
 
-The agent resumes only after it sees a later issue comment containing one of:
+에이전트는 이후 이슈 댓글에서 다음 중 하나를 확인해야 재개합니다.
 
 ```text
 @agent A
@@ -67,41 +79,41 @@ The agent resumes only after it sees a later issue comment containing one of:
 @agent approve
 ```
 
-## MR Report Shape
+## MR/PR 보고서 형식
 
-The MR description must include:
+MR/PR 본문은 다음을 포함해야 합니다.
 
-- compact reviewer summary
-- issue link
-- risk level
-- selected decision
-- verification result
-- user test gate
-- expandable issue analysis
-- expandable implementation details
-- expandable verification logs
-- expandable agent decision log
+- 짧은 검토 요약
+- 연결 이슈
+- 위험도
+- 사용자 결정
+- 검증 결과
+- 사용자 테스트 게이트
+- 접이식 이슈 분석
+- 접이식 구현 상세
+- 접이식 검증 로그
+- 접이식 에이전트 결정 로그
 
-GitLab and GitHub render Markdown with tags such as `<table>` and `<details>`, so the MVP uses those instead of a separate HTML artifact.
+GitLab과 GitHub는 Markdown에서 `<table>`, `<details>`를 렌더링하므로 별도 HTML 산출물 대신 MR/PR 본문 안에 보고서를 작성합니다.
 
-## User Testing
+## 사용자 테스트
 
-The MR/PR is not the user test itself. It is the artifact that lets a reviewer or user test the change.
+MR/PR은 사용자 테스트 자체가 아닙니다. 리뷰어 또는 사용자가 테스트를 수행할 수 있게 해주는 산출물입니다.
 
-After the MR/PR is created, the agent moves the issue to `agent:needs-user-test`.
+MR/PR 생성 후 에이전트는 이슈를 `agent:needs-user-test`로 이동합니다.
 
-The test result must be written on the linked issue:
+테스트 결과는 반드시 연결된 이슈 댓글에 남깁니다.
 
 ```text
 @agent test-pass
 ```
 
-or:
+또는:
 
 ```text
-@agent test-fail <reason>
+@agent test-fail <사유>
 ```
 
-On pass, the agent moves the issue to `agent:done`.
+통과하면 에이전트는 이슈를 `agent:done`으로 이동합니다.
 
-On fail, the agent moves the issue to `agent:changes-requested`.
+실패하면 에이전트는 이슈를 `agent:changes-requested`로 이동합니다.

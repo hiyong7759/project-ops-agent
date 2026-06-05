@@ -39,7 +39,7 @@ class MvpContractTests(unittest.TestCase):
         source = inspect.getsource(templates.render_mr_report)
         self.assertIn("<table>", source)
         self.assertIn("<details>", source)
-        self.assertIn("Reviewer Summary", source)
+        self.assertIn("검토 요약", source)
 
 
 if __name__ == "__main__":

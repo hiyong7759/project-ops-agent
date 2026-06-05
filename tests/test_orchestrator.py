@@ -70,7 +70,7 @@ class FakeCommandRunner:
 
 class FakeFixProvider:
     def apply(self, workspace, issue, analysis, comments):
-        return FixResult(success=True, summary="Fixed issue", files_changed=["src/order.py"])
+        return FixResult(success=True, summary="이슈를 수정했습니다.", files_changed=["src/order.py"])
 
 
 def profile():
@@ -100,7 +100,7 @@ class OrchestratorTests(unittest.TestCase):
         issue = Issue(iid=1, title="로그인 안됨", description="로그인이 안됩니다", labels=["agent:queued"])
         result = Orchestrator(client, profile()).process_issue(issue)
         self.assertEqual("needs-info", result.status)
-        self.assertTrue(any("Agent Needs Info" in body for body in client.posted_comments))
+        self.assertTrue(any("에이전트 추가 정보 필요" in body for body in client.posted_comments))
         self.assertIn("agent:needs-info", client.label_updates[-1])
 
     def test_answered_issue_can_create_mr(self):
@@ -124,6 +124,7 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual("https://gitlab.local/mr/1", result.mr_url)
         self.assertIn("agent:needs-user-test", client.label_updates[-1])
         self.assertIn("<details>", client.created_mrs[0])
+        self.assertIn("사용자 테스트 게이트", client.created_mrs[0])
 
     def test_user_test_pass_marks_done(self):
         from project_ops_agent.models import Comment

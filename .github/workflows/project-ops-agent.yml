@@ -2,7 +2,13 @@ name: Project Ops Agent MVP
 
 on:
   workflow_dispatch:
-  # Uncomment for periodic MVP scans.
+    inputs:
+      config_path:
+        description: "실행할 프로젝트 설정 파일 경로"
+        required: false
+        default: "configs/projects/github.sample.project.toml"
+        type: string
+  # 주기 실행이 필요하면 아래 schedule 주석을 해제합니다.
   # schedule:
   #   - cron: "*/10 * * * *"
 
@@ -16,24 +22,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: 저장소 체크아웃
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Python 설정
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Configure git author
+      - name: git 작성자 설정
         run: |
           git config user.name "project-ops-agent[bot]"
           git config user.email "project-ops-agent[bot]@users.noreply.github.com"
 
-      - name: Install agent
+      - name: 에이전트 설치
         run: python -m pip install -e .
 
-      - name: Scan queued issues
-        run: python -m project_ops_agent.cli scan --config configs/projects/github.sample.project.toml
+      - name: 대기 중인 이슈 스캔
+        run: python -m project_ops_agent.cli scan --config "$CONFIG_PATH"
         env:
+          CONFIG_PATH: ${{ github.event.inputs.config_path || 'configs/projects/github.sample.project.toml' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONDONTWRITEBYTECODE: "1"
