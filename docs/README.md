@@ -2,6 +2,8 @@
 
 이 폴더의 문서는 README를 보완하는 참조 문서입니다. 처음 읽을 때는 repository root의 `README.md`를 먼저 보고, 필요한 상황에 따라 아래 문서를 선택합니다.
 
+문서의 기준은 사용자 관점입니다. `agent:queued` 같은 label은 내부 상태를 확인하기 위한 보조 표기이고, 항상 “무슨 상황인지”, “사용자가 무엇을 판단해야 하는지”, “에이전트가 무엇을 자동으로 하는지”와 함께 읽어야 합니다.
+
 ## 읽는 순서
 
 ### 처음 이해할 때
@@ -42,14 +44,16 @@
 
 ## 사용자와 에이전트의 경계
 
-| 단계 | 사용자 책임 | 에이전트 책임 |
-| --- | --- | --- |
-| 작업 요청 | Issue 작성, `agent:queued` label 부여 | queued Issue 탐색 |
-| 요구사항 판단 | 모호한 부분에 대해 `@agent A/B/C` 답변 | 분석 댓글과 선택지 작성 |
-| 코드 수정 | 필요 시 정책 방향 결정 | `fix.command` 실행 |
-| 검증 | PR/MR 확인, 실제 사용자 테스트 | 검증 명령 실행, 보고서 작성 |
-| 완료 판단 | `@agent test-pass` 또는 `@agent test-fail` 댓글 작성 | label을 `agent:done` 또는 `agent:changes-requested`로 전이 |
-| 병합 | 조직 절차에 따라 merge 판단 | 자동 merge하지 않음 |
+아래 표에서 괄호 안의 label은 GitHub/GitLab Issue에서 상태를 확인할 때 쓰는 이름입니다. 사용자는 label 이름을 외우기보다 현재 단계의 의미와 본인이 해야 할 일을 확인하면 됩니다.
+
+| 흐름 | 사용자에게 보이는 의미 | 사용자가 할 일 | 자동화되는 일 |
+| --- | --- | --- | --- |
+| 작업 맡김 (`agent:queued`) | 이 Issue를 에이전트 처리 대상으로 올림 | Issue를 작성하고 처리 label을 붙임 | 에이전트가 다음 실행에서 Issue를 찾음 |
+| 방향 판단 대기 (`agent:needs-info`) | 요구사항이 모호해서 코드 변경 전 멈춤 | Issue 댓글에 `@agent A/B/C` 또는 승인 댓글 작성 | 에이전트가 분석과 선택지를 댓글로 남김 |
+| 수정과 검증 진행 (`agent:fixing`, `agent:verifying`) | 선택한 방향으로 변경과 테스트가 진행 중 | 보통 기다림 | `fix.command` 실행, 검증 명령 실행, commit 생성 |
+| PR/MR 확인 대기 (`agent:needs-user-test`) | PR/MR이 생성됐고 사람이 확인해야 함 | PR/MR 본문, 변경 파일, 검증 결과를 확인 | 보고서 작성, Issue 상태 전이 |
+| 결과 기록 (`agent:done`, `agent:changes-requested`) | 사용자 테스트 결과가 Issue에 기록됨 | `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | 댓글을 읽고 완료 또는 변경 요청으로 상태 변경 |
+| 병합 | 조직 절차에 따라 최종 반영 여부 결정 | 사람이 merge 판단 | 에이전트는 자동 merge하지 않음 |
 
 ## 자동화되는 것과 아닌 것
 

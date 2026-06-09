@@ -12,6 +12,8 @@
 - 에이전트가 그 플랫폼과 저장소에 접근할 수 있는 위치에서 실행됩니다.
 - 대상 프로젝트에 맞는 `fix.command`를 제공합니다.
 
+지금 이 저장소에서 검증할 때는 에이전트가 자기 자신의 Issue와 PR을 관리합니다. 다른 프로젝트에 적용할 때는 에이전트 코드 자체를 바꾸는 것이 아니라, 대상 프로젝트의 repo, Issue 플랫폼, token, runner, `fix.command`를 새 project profile로 연결합니다.
+
 ## 도입 전에 결정할 것
 
 | 결정 항목 | 사용자가 정해야 하는 것 | 자동화되는 것 |
@@ -34,8 +36,23 @@
 6. 실행 위치를 정합니다.
 7. 안전한 `fix.command`를 연결합니다.
 8. `scan`을 수동 또는 주기 실행합니다.
-9. 첫 검증은 모호한 이슈로 `agent:needs-info`까지 확인합니다.
-10. 이후 PR/MR 생성과 `agent:needs-user-test` 게이트를 확인합니다.
+9. 첫 검증은 모호한 이슈로 사용자 방향 결정 대기 상태(`agent:needs-info`)까지 확인합니다.
+10. 이후 PR/MR 생성과 사용자 테스트 대기 게이트(`agent:needs-user-test`)를 확인합니다.
+
+## 도입 후 운영 흐름
+
+사용자는 상태 label 이름을 외워서 운영하지 않습니다. 아래 흐름처럼 현재 상황과 필요한 행동을 확인합니다.
+
+| 흐름 | 사용자에게 보이는 의미 | 사용자가 할 일 | 에이전트가 자동 처리하는 일 |
+| --- | --- | --- | --- |
+| 작업 요청 등록 (`agent:queued`) | 대상 프로젝트의 Issue를 에이전트에게 맡김 | 변경 요청과 기대 결과를 Issue에 작성 | 다음 실행에서 Issue 탐색 |
+| 방향 결정 (`agent:needs-info`) | 요구사항이 모호하거나 승인 판단이 필요함 | Issue 댓글에 `@agent A/B/C` 또는 승인 댓글 작성 | 질문과 선택지 작성 후 대기 |
+| 변경 생성 (`agent:fixing`) | 대상 프로젝트 코드 변경이 만들어지는 중 | 보통 기다림 | project profile의 `fix.command` 실행 |
+| 검증 (`agent:verifying`) | 대상 프로젝트의 검증 명령 실행 중 | 보통 기다림 | install/lint/test 명령 실행 |
+| PR/MR 확인 (`agent:needs-user-test`) | 리뷰와 사용자 테스트가 필요한 산출물이 생김 | PR/MR 보고서, 변경 파일, 검증 로그 확인 | branch push, PR/MR 생성, 보고서 작성 |
+| 결과 판단 (`agent:done` 또는 `agent:changes-requested`) | 사용자가 통과 또는 실패를 Issue에 남김 | `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | label을 완료 또는 변경 요청으로 이동 |
+
+merge는 자동화하지 않습니다. 운영자가 기존 조직 절차에 따라 최종 반영 여부를 결정합니다.
 
 ## GitHub 프로젝트
 
@@ -170,7 +187,7 @@ Body:
 예상 결과:
 
 - 에이전트가 분석 댓글을 남깁니다.
-- 이슈가 `agent:needs-info`로 이동합니다.
+- 이슈가 사용자 방향 결정 대기 상태(`agent:needs-info`)로 이동합니다.
 - 에이전트가 `@agent A` 답변 형식을 안내합니다.
 
 그 다음 사용자가 이슈 댓글에 답합니다.

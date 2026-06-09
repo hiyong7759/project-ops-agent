@@ -38,19 +38,28 @@ export PYTHONDONTWRITEBYTECODE=1
 python3 -m unittest discover -s tests
 ```
 
-테스트가 검증하는 항목:
+검증자가 이 테스트를 통해 확인하는 운영 흐름:
+
+- 처리 대상으로 등록된 Issue가 분석되고, 모호하면 코드 변경 전 사용자 결정 대기 상태가 되는지
+- 사용자가 Issue 댓글에 `@agent A`를 남기면 다음 실행에서 수정과 PR/MR 생성으로 이어지는지
+- PR/MR이 만들어져도 바로 완료가 아니라 사용자 테스트 대기 상태로 멈추는지
+- 사용자가 Issue 댓글에 `@agent test-pass`를 남겨야 완료 상태가 되는지
+- 사용자가 Issue 댓글에 `@agent test-fail <사유>`를 남기면 변경 요청 상태가 되는지
+- 권한, 설정, 정책 문제로 중단된 Issue가 같은 중단 댓글을 반복하지 않고 새 사용자 재개 댓글을 기다리는지
+
+구현 수준에서 테스트가 검증하는 항목:
 
 - queued → clarification → MR/PR 생성 → 사용자 테스트 → done까지의 in-memory e2e 흐름
 - `agent:*` label이 상호 배타적으로 유지되는지
-- 모호한 이슈가 `agent:needs-info`로 이동하는지
+- 모호한 이슈가 사용자 방향 결정 대기 상태(`agent:needs-info`)로 이동하는지
 - 사용자 방향 결정이 이슈 댓글에서 읽히는지
 - 답변이 있는 이슈가 MR/PR 생성으로 진행되는지
-- MR/PR 생성 후 바로 done이 아니라 `agent:needs-user-test`가 되는지
+- MR/PR 생성 후 바로 done이 아니라 사용자 테스트 대기 상태(`agent:needs-user-test`)가 되는지
 - `@agent test-pass`, `@agent test-fail` 댓글이 done 또는 changes-requested로 전이되는지
 - MR/PR 보고서가 table과 `<details>` 섹션을 사용하는지
 - 사용자-facing 보고서 핵심 문구가 한국어인지
 - demo `fix.command`가 검증용 산출물을 생성하고 잘못된 입력을 거부하는지
-- `agent:blocked` 이후 새 사용자 재개 댓글이 있으면 scan에서 다시 처리되는지
+- 자동 진행 불가 상태(`agent:blocked`) 이후 새 사용자 재개 댓글이 있으면 scan에서 다시 처리되는지
 - 에이전트 marker가 있는 과거 댓글이 다음 이슈 분석 입력에서 제외되는지
 
 ## 실제 운영 검증
@@ -60,16 +69,16 @@ GitLab 또는 GitHub 실제 프로젝트에 연결하기 전에 다음을 확인
 1. `docs/OPERATING_RULES.md`의 label을 생성합니다.
 2. 최소 권한 token을 준비합니다.
 3. GitLab이면 `GITLAB_TOKEN`, GitHub이면 `GITHUB_TOKEN`을 설정합니다.
-4. `agent:queued` label이 붙은 이슈를 하나 생성합니다.
+4. 처리할 이슈를 하나 만들고 에이전트 처리 대상으로 표시합니다.
 5. `scan`을 실행합니다.
-6. 이슈가 `agent:analyzing`을 거쳐 분석 댓글을 받는지 확인합니다.
-7. 모호한 이슈가 `agent:needs-info`로 이동하는지 확인합니다.
+6. 이슈가 분석 중 상태(`agent:analyzing`)를 거쳐 분석 댓글을 받는지 확인합니다.
+7. 모호한 이슈가 사용자 방향 결정 대기 상태로 이동하는지 확인합니다.
 8. 이슈 댓글에 `@agent A`를 작성합니다.
 9. 안전한 `fix.command`를 설정합니다.
 10. MR/PR 보고서에 table과 `<details>` 섹션이 있는지 확인합니다.
-11. 이슈가 `agent:needs-user-test`로 이동하는지 확인합니다.
+11. 이슈가 PR/MR 확인과 사용자 테스트 대기 상태로 이동하는지 확인합니다.
 12. 실제 테스트 후 이슈 댓글에 `@agent test-pass`를 작성합니다.
-13. 이슈가 `agent:done`으로 이동하는지 확인합니다.
+13. 이슈가 완료 상태로 이동하는지 확인합니다.
 
 ## GitHub Actions 실검증 메모
 

@@ -54,16 +54,15 @@ Issue Platform
 
 ## 런타임 흐름
 
-```text
-agent:queued
-  -> agent:analyzing
-  -> agent:needs-info
-  -> @agent 답변 대기
-  -> agent:fixing
-  -> agent:verifying
-  -> agent:needs-user-test
-  -> agent:done
-```
+| 사용자-visible 흐름 | 내부 상태 label | 내부 처리 |
+| --- | --- | --- |
+| 처리할 Issue가 등록됨 | `agent:queued` | Orchestrator가 scan 대상 Issue로 선택 |
+| 에이전트가 요청을 읽음 | `agent:analyzing` | IssueAnalyzer와 PolicyEngine 실행 |
+| 사용자 방향 결정이 필요함 | `agent:needs-info` | ClarificationGate가 새 사용자 댓글을 기다림 |
+| 선택된 방향으로 수정함 | `agent:fixing` | ExternalFixProvider가 project profile의 `fix.command` 실행 |
+| 검증 명령을 실행함 | `agent:verifying` | CommandRunner가 install/lint/test를 실행 |
+| PR/MR이 만들어지고 사람 확인을 기다림 | `agent:needs-user-test` | MRReportBuilder가 보고서를 만들고 플랫폼 client가 PR/MR 생성 |
+| 사용자가 통과를 확인함 | `agent:done` | 이후 자동 진행 없음 |
 
 에이전트는 이슈가 `agent:needs-info` 상태일 때 코드를 수정하지 않습니다.
 

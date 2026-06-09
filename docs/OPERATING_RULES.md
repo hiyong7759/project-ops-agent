@@ -26,11 +26,11 @@
 
 | 상황 | 사용자 책임 | 에이전트 책임 |
 | --- | --- | --- |
-| 작업 시작 | Issue를 작성하고 `agent:queued` label을 붙임 | 처리 대상 Issue를 찾음 |
-| 요구사항 모호 | `@agent A/B/C` 또는 승인 댓글 작성 | 코드 변경 전에 `agent:needs-info`로 멈춤 |
-| 코드 수정 | 정책 방향과 결과를 검토 | `fix.command`를 실행하고 변경을 commit |
-| PR/MR 생성 후 | PR/MR 본문, 변경 파일, 검증 결과를 확인 | 보고서를 만들고 Issue를 `agent:needs-user-test`로 이동 |
-| 사용자 테스트 | 연결 Issue에 `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | 댓글을 감지해 `agent:done` 또는 `agent:changes-requested`로 이동 |
+| 작업 시작 | 처리할 내용을 Issue에 쓰고 에이전트 처리 대상으로 표시 | 처리 대상 Issue를 찾음 |
+| 요구사항 모호 | 에이전트가 제시한 선택지 중 방향을 Issue 댓글로 결정 | 코드 변경 전에 멈추고 질문 댓글을 남김 |
+| 코드 수정 | 필요하면 정책 방향과 결과를 검토 | `fix.command`를 실행하고 변경을 commit |
+| PR/MR 생성 후 | PR/MR 본문, 변경 파일, 검증 결과를 확인 | 보고서를 만들고 Issue를 사용자 테스트 대기 상태로 이동 |
+| 사용자 테스트 | 연결 Issue에 통과 또는 실패 결과를 댓글로 작성 | 댓글을 감지해 완료 또는 변경 요청 상태로 이동 |
 | 병합 | 조직 절차에 따라 merge 판단 | 자동 merge하지 않음 |
 
 ## 언어 가이드라인
@@ -44,22 +44,22 @@
 - 사용자가 답해야 하는 명령 형식은 원문을 유지합니다. 예: `@agent A`, `@agent test-pass`
 - label, branch name, JSON field, CLI command 같은 시스템 식별자는 원문을 유지합니다.
 
-## Label
+## 상태 읽는 법
 
-이슈에는 한 번에 하나의 `agent:*` 상태 label만 있어야 합니다.
+이슈에는 한 번에 하나의 `agent:*` 상태 label만 있어야 합니다. 다만 사용자는 label 이름만 보고 판단하지 않습니다. 먼저 현재 상황을 읽고, 필요한 행동이 있는지 확인합니다.
 
-| Label | 의미 |
-| --- | --- |
-| `agent:queued` | 에이전트가 처리할 준비가 된 이슈 |
-| `agent:analyzing` | 에이전트가 이슈를 분석 중 |
-| `agent:needs-info` | 사용자 방향 결정 또는 추가 정보 대기 |
-| `agent:fixing` | 에이전트가 코드 변경 중 |
-| `agent:verifying` | 에이전트가 검증 명령 실행 중 |
-| `agent:mr-created` | 에이전트가 MR/PR을 생성함 |
-| `agent:needs-user-test` | MR/PR 생성 후 사용자 테스트 대기 |
-| `agent:changes-requested` | 사용자 테스트 실패 또는 변경 요청 |
-| `agent:blocked` | 에이전트가 더 진행할 수 없음 |
-| `agent:done` | 작업 완료 |
+| 현재 상황 | Issue label | 사용자가 해석할 의미 | 사용자가 할 일 | 에이전트가 하는 일 |
+| --- | --- | --- | --- | --- |
+| 작업 요청이 등록됨 | `agent:queued` | 이 Issue를 에이전트에게 맡김 | 요청 내용을 충분히 적고 기다림 | 다음 실행에서 Issue를 가져감 |
+| 요청을 읽는 중 | `agent:analyzing` | 에이전트가 이슈 본문과 댓글을 분석 중 | 기다림 | 분석 댓글과 위험도 판단 준비 |
+| 사용자 결정이 필요함 | `agent:needs-info` | 코드 변경 전에 모호한 부분을 확정해야 함 | Issue 댓글에 `@agent A/B/C`, `@agent proceed`, `@agent approve` 중 맞는 답을 남김 | 선택지와 답변 형식을 안내하고 대기 |
+| 수정 중 | `agent:fixing` | 선택된 방향으로 파일을 바꾸는 중 | 기다림 | `fix.command` 실행, 변경 파일 수집 |
+| 검증 중 | `agent:verifying` | 설정된 install/lint/test 명령을 실행 중 | 기다림 | 검증 로그와 결과 정리 |
+| MR/PR 생성됨 | `agent:mr-created` | MR/PR 생성 API 호출이 완료됨 | 보통 다음 상태까지 기다림 | Issue를 사용자 테스트 대기 상태로 이동 |
+| 사용자 확인 대기 | `agent:needs-user-test` | PR/MR이 있으니 사람이 확인해야 함 | PR/MR 본문, 변경 파일, 검증 결과를 보고 Issue에 테스트 결과 작성 | 더 진행하지 않고 사용자 댓글 대기 |
+| 변경 요청됨 | `agent:changes-requested` | 사용자가 확인 중 실패 또는 보완 필요를 남김 | 실패 사유가 충분한지 확인하고 다음 처리 방향 결정 | 다음 실행에서 다시 처리 대상으로 볼 수 있음 |
+| 자동 진행 불가 | `agent:blocked` | 권한, 설정, 정책 문제로 에이전트가 혼자 해결할 수 없음 | 원인을 해결한 뒤 Issue에 새 재개 댓글 작성 | 새 사용자 댓글이 생기기 전까지 반복 댓글 없이 대기 |
+| 완료됨 | `agent:done` | 사용자가 통과를 확인함 | 필요하면 사람이 merge | 더 이상 자동 진행하지 않음 |
 
 위험도 label:
 
@@ -93,13 +93,15 @@
 
 에이전트는 이후 이슈 댓글에서 다음 중 하나를 확인해야 재개합니다.
 
-```text
-@agent A
-@agent B
-@agent C
-@agent proceed
-@agent approve
-```
+| 사용자가 남기는 댓글 | 의미 |
+| --- | --- |
+| `@agent A` | 에이전트가 제시한 A 방향으로 진행 |
+| `@agent B` | 에이전트가 제시한 B 방향으로 진행 |
+| `@agent C` | 에이전트가 제시한 C 방향으로 진행 |
+| `@agent proceed` | 추가 설명 없이 현재 이해한 방향으로 재개 |
+| `@agent approve` | 승인 확인이 필요한 작업을 승인하고 재개 |
+
+댓글은 반드시 연결된 Issue에 남깁니다. PR/MR 댓글이나 메신저 답변은 MVP에서 사용자 결정으로 수집하지 않습니다.
 
 ## 중단 상태 재시도
 
@@ -140,20 +142,15 @@ GitLab과 GitHub는 Markdown에서 `<table>`, `<details>`를 렌더링하므로 
 
 MR/PR은 사용자 테스트 자체가 아닙니다. 리뷰어 또는 사용자가 테스트를 수행할 수 있게 해주는 산출물입니다.
 
-MR/PR 생성 후 에이전트는 이슈를 `agent:needs-user-test`로 이동합니다.
+MR/PR 생성 후 에이전트는 이슈를 사용자 테스트 대기 상태(`agent:needs-user-test`)로 이동합니다.
 
 테스트 결과는 반드시 연결된 이슈 댓글에 남깁니다.
 
-```text
-@agent test-pass
-```
+| 사용자가 남기는 댓글 | 의미 | 다음 상태 |
+| --- | --- | --- |
+| `@agent test-pass` | PR/MR 확인과 사용자 테스트가 통과함 | 완료 상태 |
+| `@agent test-fail <사유>` | 확인 중 문제가 있어 수정이 필요함 | 변경 요청 상태 |
 
-또는:
+통과하면 에이전트는 이슈를 완료 상태(`agent:done`)로 이동합니다.
 
-```text
-@agent test-fail <사유>
-```
-
-통과하면 에이전트는 이슈를 `agent:done`으로 이동합니다.
-
-실패하면 에이전트는 이슈를 `agent:changes-requested`로 이동합니다.
+실패하면 에이전트는 이슈를 변경 요청 상태(`agent:changes-requested`)로 이동합니다.

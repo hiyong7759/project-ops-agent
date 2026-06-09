@@ -28,21 +28,20 @@
 
 이 MVP에서 PR이 올라왔다는 사실만으로 실제 기능 테스트가 끝난 것은 아닙니다. 현재 프로젝트에서는 화면 확인 대신 PR 보고서, 변경 파일, 검증 로그, Issue 상태 전이를 확인하는 것이 사용자 테스트입니다.
 
-## 흐름
+## 사용자가 보는 전체 흐름
 
-```text
-GitHub Issue에 agent:queued label 추가
-  -> GitHub Actions workflow 수동 실행
-  -> project_ops_agent scan 실행
-  -> 이슈 분석 댓글 작성
-  -> 모호하면 agent:needs-info
-  -> 사용자가 이슈 댓글에 @agent A 작성
-  -> 다음 workflow run에서 재개
-  -> branch push
-  -> Agent Report가 포함된 Pull Request 생성
-  -> 이슈가 agent:needs-user-test로 이동
-  -> 사용자가 이슈 댓글에 @agent test-pass 또는 @agent test-fail 작성
-```
+괄호 안의 label은 GitHub Issue에서 현재 위치를 확인하기 위한 보조 표기입니다.
+
+| 흐름 | 사용자가 확인할 곳 | 현재 의미 | 사용자가 할 일 |
+| --- | --- | --- | --- |
+| 작업 맡김 (`agent:queued`) | GitHub Issue | 이 이슈를 에이전트가 처리하도록 표시함 | 이슈 내용이 충분한지 확인하고 workflow 실행 |
+| 분석 결과 확인 (`agent:analyzing`) | Issue comment, Actions log | 에이전트가 이슈를 읽고 판단 중 | 보통 기다림 |
+| 질문에 답하기 (`agent:needs-info`) | Issue comment | 코드 변경 전에 사용자의 방향 결정이 필요함 | Issue 댓글에 `@agent A` 같은 답변 작성 후 workflow 재실행 |
+| 수정/검증 진행 (`agent:fixing`, `agent:verifying`) | Actions log | demo `fix.command`와 테스트가 실행 중 | workflow가 끝날 때까지 기다림 |
+| PR 확인 (`agent:needs-user-test`) | Pull Requests, PR 본문, Files changed | PR이 생성됐고 사람이 검토해야 함 | PR 보고서와 변경 파일을 보고 결과를 Issue 댓글에 작성 |
+| 완료 또는 보완 (`agent:done`, `agent:changes-requested`) | Issue label/comment | 사용자 테스트 결과가 반영됨 | 필요하면 사람이 merge하거나 보완 이슈를 이어감 |
+
+PR이 아직 없다면 PR 본문을 확인하는 단계가 아닙니다. 먼저 Issue 댓글에 질문이 남았는지, Actions 로그에 권한 또는 검증 오류가 있는지 확인합니다.
 
 ## Workflow
 
@@ -128,7 +127,7 @@ use_current_checkout = true
 - commit 생성
 - branch push
 - PR 생성
-- 이슈를 `agent:needs-user-test`로 이동
+- 이슈를 사용자 테스트 대기 상태(`agent:needs-user-test`)로 이동
 
 ## 수동 검증 절차
 
@@ -162,12 +161,12 @@ python3 -m unittest discover -s tests
 
 ## 사용자가 판단하는 시점
 
-| 시점 | 사용자가 할 일 | 에이전트가 다음 run에서 할 일 |
-| --- | --- | --- |
-| `agent:needs-info` | 연결 Issue에 `@agent A`, `@agent B`, `@agent C` 중 하나를 댓글로 작성 | 댓글을 읽고 수정 단계로 진행 |
-| PR 생성 후 `agent:needs-user-test` | PR 본문, 변경 파일, workflow 검증 결과를 확인 | 대기 |
-| 확인 통과 | 연결 Issue에 `@agent test-pass` 댓글 작성 | Issue를 `agent:done`으로 이동 |
-| 확인 실패 | 연결 Issue에 `@agent test-fail <사유>` 댓글 작성 | Issue를 `agent:changes-requested`로 이동 |
+| 상황 | 사용자가 해석할 의미 | 사용자가 할 일 | 에이전트가 다음 run에서 할 일 |
+| --- | --- | --- | --- |
+| Issue에 추가 정보 요청 댓글이 있음 | 에이전트가 코드 변경 전 방향을 묻고 있음 | 연결 Issue에 `@agent A`, `@agent B`, `@agent C` 중 하나를 댓글로 작성 | 댓글을 읽고 수정 단계로 진행 |
+| PR이 생성되고 Issue가 사용자 테스트 대기 상태임 | 자동 수정과 기본 검증은 끝났고 사람이 확인할 차례 | PR 본문, 변경 파일, workflow 검증 결과를 확인 | 테스트 결과 댓글을 기다림 |
+| 확인 결과가 통과임 | 이 PR은 사용자가 보기에 반영 가능함 | 연결 Issue에 `@agent test-pass` 댓글 작성 | Issue를 완료 상태로 이동 |
+| 확인 결과가 실패임 | 이 PR은 보완이 필요함 | 연결 Issue에 `@agent test-fail <사유>` 댓글 작성 | Issue를 변경 요청 상태로 이동 |
 
 에이전트는 PR을 만들 수 있지만 merge하지 않습니다. merge 여부는 사람이 PR을 검토한 뒤 결정합니다.
 
@@ -175,27 +174,38 @@ python3 -m unittest discover -s tests
 
 workflow를 실행하기 전에 저장소에 다음 label이 있어야 합니다.
 
-```text
-agent:queued
-agent:analyzing
-agent:needs-info
-agent:fixing
-agent:verifying
-agent:mr-created
-agent:needs-user-test
-agent:changes-requested
-agent:blocked
-agent:done
-risk:low
-risk:medium
-risk:high
-```
+| label | 사용자 관점의 의미 |
+| --- | --- |
+| `agent:queued` | 처리할 이슈로 등록됨 |
+| `agent:analyzing` | 에이전트가 이슈를 읽는 중 |
+| `agent:needs-info` | 사용자의 방향 결정 또는 추가 정보가 필요함 |
+| `agent:fixing` | 에이전트가 파일 변경을 만드는 중 |
+| `agent:verifying` | 에이전트가 검증 명령을 실행하는 중 |
+| `agent:mr-created` | MR/PR 생성 호출이 완료됨 |
+| `agent:needs-user-test` | PR/MR을 사람이 확인하고 결과를 Issue에 남겨야 함 |
+| `agent:changes-requested` | 사용자 확인 결과 보완이 필요함 |
+| `agent:blocked` | 권한, 설정, 정책 문제로 자동 진행이 막힘 |
+| `agent:done` | 사용자가 통과를 확인해 작업이 완료됨 |
+| `risk:low` | 작고 국소적인 변경 |
+| `risk:medium` | 동작 또는 검증 리스크가 있는 변경 |
+| `risk:high` | 운영 민감 영역 또는 승인 필요 영역 |
 
 `agent:mr-created`는 GitLab 흐름과의 호환을 위해 이름을 유지합니다. GitHub에서는 Pull Request가 생성됐다는 뜻입니다.
 
+## PR이 없을 때 확인 순서
+
+PR은 `fix.command`가 성공하고 branch push와 PR 생성 API가 모두 통과해야 만들어집니다. PR이 보이지 않으면 아래 순서로 확인합니다.
+
+| 확인할 곳 | 무엇을 보면 되는가 | 다음 행동 |
+| --- | --- | --- |
+| Issue label/comment | 추가 정보 요청 상태인지 확인 | 질문이 있으면 Issue에 `@agent A`처럼 답변 |
+| Actions run log | 테스트 실패, 권한 오류, push 오류가 있는지 확인 | 오류 메시지에 맞게 설정 또는 코드를 수정 |
+| Repository Actions 설정 | PR 생성 권한이 켜져 있는지 확인 | Workflow permissions를 read/write와 PR 생성 허용으로 변경 |
+| Issue comment의 에이전트 중단 메시지 | 자동 진행이 막힌 원인을 확인 | 원인을 해결한 뒤 Issue에 `@agent proceed` 작성 |
+
 ## 테스트용 이슈 예시
 
-모호한 이슈를 만들어 `agent:needs-info` 흐름을 검증합니다.
+모호한 이슈를 만들어 에이전트가 코드 변경 전 사용자 방향 결정을 요청하는지 검증합니다.
 
 ```markdown
 Title: MVP 검증: 로그인 오류
@@ -204,13 +214,13 @@ Body:
 로그인이 안됩니다
 ```
 
-이슈에 `agent:queued` label을 붙이고 workflow를 실행합니다. 에이전트가 분석 댓글과 추가 정보 요청 댓글을 남기면 사용자는 이슈 댓글에 답합니다.
+이슈에 에이전트 처리 대상 label(`agent:queued`)을 붙이고 workflow를 실행합니다. 에이전트가 분석 댓글과 추가 정보 요청 댓글을 남기면 사용자는 이슈 댓글에 답합니다.
 
 ```text
 @agent A
 ```
 
-PR이 생성되고 이슈가 `agent:needs-user-test`가 되면 PR을 직접 확인하고 테스트합니다. 결과는 연결된 이슈에 남깁니다.
+PR이 생성되고 이슈가 사용자 테스트 대기 상태(`agent:needs-user-test`)가 되면 PR을 직접 확인하고 테스트합니다. 결과는 연결된 이슈에 남깁니다.
 
 ```text
 @agent test-pass
