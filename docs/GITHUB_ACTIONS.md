@@ -8,6 +8,26 @@
 .github/workflows/project-ops-agent.yml
 ```
 
+이 문서는 실제 GitHub Actions에서 에이전트가 Issue를 읽고, branch를 push하고, Pull Request를 만들 수 있는지 확인할 때 봅니다.
+
+전체 개념은 repository root의 `README.md`, 문서 읽는 순서는 `docs/README.md`, 운영 label 규칙은 `docs/OPERATING_RULES.md`를 함께 참고합니다.
+
+## 검증 범위
+
+이 저장소는 Project Ops Agent 자체를 검증하는 MVP입니다. 화면 기능이나 실제 서비스 API가 없으므로 사용자가 확인할 수 있는 범위는 다음입니다.
+
+| 확인 대상 | 사용자가 보는 곳 | 의미 |
+| --- | --- | --- |
+| Issue 상태 | GitHub Issue label | 에이전트가 현재 어느 단계에 있는지 |
+| 에이전트 질문 | GitHub Issue comment | 사용자가 `@agent A/B/C`로 판단해야 할 내용 |
+| PR 생성 | GitHub Pull Requests | 에이전트가 branch push와 PR 생성을 완료했는지 |
+| PR 보고서 | PR 본문 | 분석, 사용자 결정, 검증 결과가 읽을 수 있게 정리됐는지 |
+| 변경 파일 | PR Files changed | demo `fix.command`가 검증용 파일을 만들었는지 |
+| 사용자 테스트 게이트 | 연결 Issue label | PR 생성 뒤에도 `agent:needs-user-test`에서 멈추는지 |
+| 완료 처리 | Issue comment/label | `@agent test-pass` 후 `agent:done`으로 이동하는지 |
+
+이 MVP에서 PR이 올라왔다는 사실만으로 실제 기능 테스트가 끝난 것은 아닙니다. 현재 프로젝트에서는 화면 확인 대신 PR 보고서, 변경 파일, 검증 로그, Issue 상태 전이를 확인하는 것이 사용자 테스트입니다.
+
 ## 흐름
 
 ```text
@@ -139,6 +159,17 @@ export PYTHONPATH=src
 export PYTHONDONTWRITEBYTECODE=1
 python3 -m unittest discover -s tests
 ```
+
+## 사용자가 판단하는 시점
+
+| 시점 | 사용자가 할 일 | 에이전트가 다음 run에서 할 일 |
+| --- | --- | --- |
+| `agent:needs-info` | 연결 Issue에 `@agent A`, `@agent B`, `@agent C` 중 하나를 댓글로 작성 | 댓글을 읽고 수정 단계로 진행 |
+| PR 생성 후 `agent:needs-user-test` | PR 본문, 변경 파일, workflow 검증 결과를 확인 | 대기 |
+| 확인 통과 | 연결 Issue에 `@agent test-pass` 댓글 작성 | Issue를 `agent:done`으로 이동 |
+| 확인 실패 | 연결 Issue에 `@agent test-fail <사유>` 댓글 작성 | Issue를 `agent:changes-requested`로 이동 |
+
+에이전트는 PR을 만들 수 있지만 merge하지 않습니다. merge 여부는 사람이 PR을 검토한 뒤 결정합니다.
 
 ## 필요한 label
 

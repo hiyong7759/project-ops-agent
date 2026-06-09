@@ -1,5 +1,16 @@
 # 운영 규칙
 
+이 문서는 Issue와 MR/PR을 실제로 운영할 때 지켜야 하는 규칙을 정리합니다.
+
+먼저 전체 흐름을 이해하려면 repository root의 `README.md`를 읽고, 문서 사이의 관계를 확인하려면 `docs/README.md`를 참고합니다.
+
+읽는 시점:
+
+- Issue label이 어떤 상태를 뜻하는지 확인할 때
+- 사용자가 어떤 댓글로 답해야 하는지 확인할 때
+- 에이전트가 어디서 멈추고 어디서 자동 진행하는지 판단할 때
+- PR/MR 보고서에 반드시 들어갈 항목을 확인할 때
+
 ## 핵심 원칙
 
 1. 선택한 이슈 플랫폼이 단일 source of truth입니다.
@@ -10,6 +21,17 @@
 6. 요구사항이 모호하면 코드 변경 전에 멈춰야 합니다.
 7. MR/PR 본문은 단순 요약이 아니라 리뷰어용 보고서입니다.
 8. 사용자에게 보이는 이슈 댓글과 MR/PR 보고서는 한국어로 작성합니다.
+
+## 책임 경계
+
+| 상황 | 사용자 책임 | 에이전트 책임 |
+| --- | --- | --- |
+| 작업 시작 | Issue를 작성하고 `agent:queued` label을 붙임 | 처리 대상 Issue를 찾음 |
+| 요구사항 모호 | `@agent A/B/C` 또는 승인 댓글 작성 | 코드 변경 전에 `agent:needs-info`로 멈춤 |
+| 코드 수정 | 정책 방향과 결과를 검토 | `fix.command`를 실행하고 변경을 commit |
+| PR/MR 생성 후 | PR/MR 본문, 변경 파일, 검증 결과를 확인 | 보고서를 만들고 Issue를 `agent:needs-user-test`로 이동 |
+| 사용자 테스트 | 연결 Issue에 `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | 댓글을 감지해 `agent:done` 또는 `agent:changes-requested`로 이동 |
+| 병합 | 조직 절차에 따라 merge 판단 | 자동 merge하지 않음 |
 
 ## 언어 가이드라인
 

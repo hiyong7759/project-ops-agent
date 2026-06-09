@@ -2,11 +2,27 @@
 
 이 저장소는 Project Ops Agent 자체를 GitHub Actions로 검증할 수 있게 구성되어 있습니다. 하지만 실제 목적은 이 에이전트를 다른 운영 프로젝트에 붙여 이슈 기반으로 변경 요청을 처리하는 것입니다.
 
+이 문서는 다른 프로젝트에 Project Ops Agent를 붙일 때 봅니다.
+
+먼저 repository root의 `README.md`에서 전체 흐름을 이해하고, 운영 label과 사용자 댓글 규칙은 `docs/OPERATING_RULES.md`, 내부 구조는 `docs/ARCHITECTURE.md`를 함께 확인합니다.
+
 핵심은 세 가지입니다.
 
 - 대상 프로젝트의 이슈 플랫폼을 source of truth로 정합니다.
 - 에이전트가 그 플랫폼과 저장소에 접근할 수 있는 위치에서 실행됩니다.
 - 대상 프로젝트에 맞는 `fix.command`를 제공합니다.
+
+## 도입 전에 결정할 것
+
+| 결정 항목 | 사용자가 정해야 하는 것 | 자동화되는 것 |
+| --- | --- | --- |
+| 이슈 플랫폼 | GitLab Issue 또는 GitHub Issue 중 무엇을 source of truth로 쓸지 | 선택한 플랫폼의 Issue와 label을 읽음 |
+| 실행 위치 | runner가 대상 repo와 API에 접근할 수 있는 위치 | runner 안에서 scan/process 실행 |
+| 수정 방식 | 프로젝트별 `fix.command`를 무엇으로 둘지 | `fix.command` 호출, 결과 수집, commit 생성 |
+| 검증 방식 | install/lint/test 명령과 사용자 테스트 기준 | 설정된 검증 명령 실행 |
+| 완료 기준 | 사람이 언제 `@agent test-pass`를 남길지 | pass/fail 댓글을 읽고 label 전이 |
+
+이 에이전트는 공통 운영 흐름을 자동화합니다. 프로젝트별 업무 지식과 실제 수정 로직은 `fix.command`와 사용자 판단으로 분리합니다.
 
 ## 적용 절차
 

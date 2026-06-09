@@ -2,6 +2,14 @@
 
 이 문서는 구현이 합의한 MVP 요구사항을 어떻게 만족하는지 정리합니다.
 
+읽는 시점:
+
+- 로컬 테스트가 무엇을 보장하는지 확인할 때
+- GitHub Actions 실검증 전에 WSL에서 기본 동작을 확인할 때
+- 새 기능을 추가한 뒤 MVP 계약이 깨지지 않았는지 점검할 때
+
+운영 절차는 `docs/OPERATING_RULES.md`, GitHub Actions 수동 검증 절차는 `docs/GITHUB_ACTIONS.md`를 참고합니다.
+
 ## 요구사항 체크리스트
 
 | 요구사항 | 구현 위치 |

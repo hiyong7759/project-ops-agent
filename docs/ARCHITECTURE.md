@@ -1,5 +1,9 @@
 # 아키텍처
 
+이 문서는 Project Ops Agent의 내부 구성과 실행 위치를 이해하거나 확장할 때 봅니다.
+
+운영자가 Issue/label 규칙만 확인하려면 `docs/OPERATING_RULES.md`가 더 적합합니다. 다른 프로젝트에 적용하는 절차는 `docs/PROJECT_ONBOARDING.md`를 참고합니다.
+
 ## 목적
 
 Project Ops Agent는 운영 코드 유지보수의 반복 부담을 줄이되, 의사결정을 숨기지 않기 위해 존재합니다.
@@ -35,6 +39,18 @@ Issue Platform
   -> MRReportBuilder
   -> MR 또는 PR
 ```
+
+| 구성 요소 | 책임 |
+| --- | --- |
+| GitLabClient/GitHubClient | Issue, comment, label, MR/PR API 호출 |
+| Orchestrator | 전체 상태 전이와 작업 순서 제어 |
+| IssueAnalyzer | Issue 본문과 사용자 댓글 분석 |
+| PolicyEngine | 위험도와 중단 조건 판단 |
+| ClarificationGate | 사용자 답변 댓글 감지 |
+| GitRunner | checkout, branch, commit, push |
+| ExternalFixProvider | `fix.command` 호출 |
+| CommandRunner | install/lint/test 같은 검증 명령 실행 |
+| MRReportBuilder | 리뷰어용 MR/PR 보고서 생성 |
 
 ## 런타임 흐름
 
