@@ -50,6 +50,8 @@ python3 -m unittest discover -s tests
 - PR/MR이 만들어져도 바로 완료가 아니라 사용자 테스트 대기 상태로 멈추는지
 - 사용자가 Issue 댓글에 `@agent test-pass`를 남겨야 완료 상태가 되는지
 - 사용자가 Issue 댓글에 `@agent test-fail <사유>`를 남기면 변경 요청 상태가 되는지
+- PR/MR 생성 전의 오래된 `@agent test-pass`가 완료 신호로 오해되지 않는지
+- 사용자 방향 결정 대기 상태가 새 사용자 댓글 없이 label을 흔들거나 중복 진행하지 않는지
 - 권한, 설정, 정책 문제로 중단된 Issue가 같은 중단 댓글을 반복하지 않고 새 사용자 재개 댓글을 기다리는지
 
 구현 수준에서 테스트가 검증하는 항목:
@@ -62,6 +64,7 @@ python3 -m unittest discover -s tests
 - 답변이 있는 이슈가 MR/PR 생성으로 진행되는지
 - MR/PR 생성 후 바로 done이 아니라 사용자 테스트 대기 상태(`agent:needs-user-test`)가 되는지
 - `@agent test-pass`, `@agent test-fail` 댓글이 done 또는 changes-requested로 전이되는지
+- 사용자 테스트 안내 이전의 테스트 결과 댓글이 무시되는지
 - MR/PR 보고서가 table과 `<details>` 섹션을 사용하는지
 - 사용자-facing 보고서 핵심 문구가 한국어인지
 - demo `fix.command`가 검증용 산출물을 생성하고 잘못된 입력을 거부하는지

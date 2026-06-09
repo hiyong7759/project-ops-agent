@@ -50,7 +50,7 @@
 | 변경 생성 (`agent:fixing`) | 대상 프로젝트 코드 변경이 만들어지는 중 | 보통 기다림 | project profile의 `fix.command` 실행 |
 | 검증 (`agent:verifying`) | 대상 프로젝트의 검증 명령 실행 중 | 보통 기다림 | install/lint/test 명령 실행 |
 | PR/MR 확인 (`agent:needs-user-test`) | 리뷰와 사용자 테스트가 필요한 산출물이 생김 | PR/MR의 “사용자가 먼저 확인할 것”, 변경 파일, 검증 로그 확인 | branch push, PR/MR 생성, 보고서 작성 |
-| 결과 판단 (`agent:done` 또는 `agent:changes-requested`) | 사용자가 통과 또는 실패를 Issue에 남김 | `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | label을 완료 또는 변경 요청으로 이동 |
+| 결과 판단 (`agent:done` 또는 `agent:changes-requested`) | 사용자가 통과 또는 실패를 Issue에 남김 | 사용자 테스트 안내 이후 `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | label을 완료 또는 변경 요청으로 이동 |
 
 merge는 자동화하지 않습니다. 운영자가 기존 조직 절차에 따라 최종 반영 여부를 결정합니다.
 
