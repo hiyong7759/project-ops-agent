@@ -26,6 +26,33 @@
 
 이 에이전트는 공통 운영 흐름을 자동화합니다. 프로젝트별 업무 지식과 실제 수정 로직은 `fix.command`와 사용자 판단으로 분리합니다.
 
+## 조직에 안내할 최소 사용법
+
+도입 담당자는 일반 조직원에게 아래 문장만 먼저 안내해도 됩니다.
+
+1. 운영 수정 요청은 대상 프로젝트의 **Issues**에 작성합니다.
+2. 에이전트에게 맡길 요청에는 `agent:queued` label을 붙입니다.
+3. 에이전트가 질문하면 Issue 댓글에 `@agent A` 또는 `@agent 방향: <내용>`으로 답합니다.
+4. PR/MR이 생성되면 본문의 **사용자가 먼저 확인할 것**을 보고 확인합니다.
+5. 결과는 Issue 댓글에 `@agent test-pass` 또는 `@agent test-fail <사유>`로 남깁니다.
+6. PR/MR merge는 기존 조직 절차대로 사람이 결정합니다.
+
+일반 조직원에게 token, runner, `fix.command`, project profile을 설명할 필요는 없습니다. 이 항목은 운영자와 도입 담당자가 관리합니다.
+
+## 도입 담당자 준비 목록
+
+| 준비 항목 | 확인할 내용 |
+| --- | --- |
+| Issue 플랫폼 | GitHub Issue 또는 GitLab Issue 중 하나를 source of truth로 정했는가 |
+| label | `agent:*`, `risk:*` label을 대상 repo에 만들었는가 |
+| 실행 위치 | runner가 이슈 플랫폼 API와 repo clone/push에 접근할 수 있는가 |
+| token | Issue comment/label, branch push, PR/MR 생성 권한이 있는가 |
+| project profile | 대상 repo URL, default branch, commands, policy가 맞는가 |
+| `fix.command` | 실제 수정 도구가 표준 JSON 입력/출력 계약을 지키는가 |
+| 검증 명령 | install/lint/test 명령이 runner에서 실행되는가 |
+| 첫 검증 Issue | 모호한 Issue로 `agent:needs-info`까지 검증했는가 |
+| PR/MR 검증 | demo 또는 안전한 수정으로 `agent:needs-user-test`까지 검증했는가 |
+
 ## 적용 절차
 
 1. 대상 프로젝트를 선택합니다.
@@ -178,6 +205,8 @@ use_current_checkout = true
 ## 첫 검증용 이슈
 
 모호한 이슈로 시작하면 안전하게 clarification 루프를 검증할 수 있습니다.
+
+GitHub 또는 GitLab에서 대상 프로젝트의 **Issues** 화면을 열고 새 Issue를 만듭니다. 제목과 본문을 아래처럼 입력한 뒤 `agent:queued` label을 붙입니다.
 
 ```markdown
 Title: 로그인 오류

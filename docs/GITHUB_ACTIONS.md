@@ -133,18 +133,27 @@ workflow는 checkout 시 전체 이력을 가져오고, 에이전트는 `origin/
 
 ## 수동 검증 절차
 
-1. GitHub에서 **Actions**를 엽니다.
-2. **Project Ops Agent MVP**를 선택합니다.
-3. **Run workflow**를 누릅니다.
-4. branch는 `main`을 유지합니다.
-5. `config_path`를 선택합니다.
-6. **Run workflow**를 다시 눌러 실행합니다.
+1. GitHub 저장소에서 **Issues**를 엽니다.
+2. **New issue**를 눌러 테스트 Issue를 만듭니다.
+3. 제목과 본문을 입력합니다.
+4. Issue 오른쪽 **Labels**에서 `agent:queued`를 붙입니다.
+5. **Create**를 눌러 Issue를 저장합니다.
+6. GitHub에서 **Actions**를 엽니다.
+7. **Project Ops Agent MVP**를 선택합니다.
+8. **Run workflow**를 누릅니다.
+9. branch는 `main`을 유지합니다.
+10. `config_path`를 선택합니다.
+11. **Run workflow**를 다시 눌러 실행합니다.
 
-안전한 첫 검증은 기본 config로 시작합니다.
+`agent:queued` label이 보이지 않으면 workflow를 먼저 실행하지 말고, 이 문서의 `필요한 label` 섹션을 보거나 운영자에게 label 생성을 요청합니다.
+
+처음 검증하는 조직원은 아래 config를 사용합니다.
 
 ```text
 configs/projects/github.sample.project.toml
 ```
+
+이 config는 실제 코드를 수정하지 않고 Issue 분석과 질문 흐름만 확인합니다.
 
 PR 생성까지 검증하려면 demo config를 사용합니다.
 
@@ -177,6 +186,8 @@ PR이 생성되기 전에 미리 남긴 `@agent test-pass`는 완료 신호로 �
 ## 필요한 label
 
 workflow를 실행하기 전에 저장소에 다음 label이 있어야 합니다.
+
+GitHub에서 label은 **Issues > Labels > New label**로 만들 수 있습니다. 처음 검증할 때 사용자가 직접 붙여야 하는 label은 보통 `agent:queued` 하나입니다. 나머지 `agent:*`, `risk:*` label은 에이전트가 상태를 기록할 때 사용합니다.
 
 | label | 사용자 관점의 의미 |
 | --- | --- |
@@ -224,6 +235,14 @@ PR이 생성되면 먼저 PR 본문을 위에서 아래로 읽습니다.
 
 모호한 이슈를 만들어 에이전트가 코드 변경 전 사용자 방향 결정을 요청하는지 검증합니다.
 
+GitHub 화면에서 하는 일:
+
+1. 저장소의 **Issues** 탭을 엽니다.
+2. **New issue**를 누릅니다.
+3. 아래 제목과 본문을 입력합니다.
+4. 오른쪽 **Labels**에서 `agent:queued`를 선택합니다.
+5. **Create**를 눌러 Issue를 만듭니다.
+
 ```markdown
 Title: MVP 검증: 로그인 오류
 
@@ -231,7 +250,7 @@ Body:
 로그인이 안됩니다
 ```
 
-이슈에 에이전트 처리 대상 label(`agent:queued`)을 붙이고 workflow를 실행합니다. 에이전트가 분석 댓글과 추가 정보 요청 댓글을 남기면 사용자는 이슈 댓글에 답합니다.
+이후 workflow를 실행합니다. 에이전트가 분석 댓글과 추가 정보 요청 댓글을 남기면 사용자는 같은 Issue 댓글에 답합니다.
 
 ```text
 @agent A

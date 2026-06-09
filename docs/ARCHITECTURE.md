@@ -4,6 +4,8 @@
 
 운영자가 Issue/label 규칙만 확인하려면 `docs/OPERATING_RULES.md`가 더 적합합니다. 다른 프로젝트에 적용하는 절차는 `docs/PROJECT_ONBOARDING.md`를 참고합니다.
 
+처음 사용하는 일반 조직원은 이 문서를 읽지 않아도 됩니다. Issue 작성, label, 댓글 규칙은 repository root의 `README.md`와 `docs/OPERATING_RULES.md`에 있습니다.
+
 ## 목적
 
 Project Ops Agent는 운영 코드 유지보수의 반복 부담을 줄이되, 의사결정을 숨기지 않기 위해 존재합니다.

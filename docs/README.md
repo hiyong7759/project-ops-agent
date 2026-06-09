@@ -6,6 +6,14 @@
 
 ## 읽는 순서
 
+### 조직원이 처음 사용할 때
+
+1. `README.md`의 `처음 사용하는 조직원은 여기부터`
+2. `README.md`의 `Issue 작성 예시`
+3. `docs/OPERATING_RULES.md`의 `상태 읽는 법`
+
+일반 사용자는 처음부터 `docs/ARCHITECTURE.md`나 `docs/MVP_VALIDATION.md`를 읽지 않아도 됩니다.
+
 ### 처음 이해할 때
 
 1. `README.md`
@@ -35,12 +43,22 @@
 
 | 문서 | 주 독자 | 읽는 시점 | 핵심 질문 |
 | --- | --- | --- | --- |
-| `README.md` | 모든 사용자 | 처음 | 이 에이전트가 무엇을 하고, 사용자는 무엇을 해야 하나 |
-| `docs/OPERATING_RULES.md` | 운영자, 리뷰어, 개발자 | Issue/PR 상태를 해석할 때 | label과 댓글 규칙은 무엇인가 |
-| `docs/PROJECT_ONBOARDING.md` | 도입 담당자 | 다른 프로젝트에 붙일 때 | 대상 프로젝트에 무엇을 준비해야 하나 |
-| `docs/GITHUB_ACTIONS.md` | 개인 검증 사용자 | GitHub Actions로 실검증할 때 | workflow를 어떻게 실행하고 무엇을 확인하나 |
+| `README.md` | 모든 조직원 | 처음 | Issue를 어떻게 만들고 어떤 댓글을 남기나 |
+| `docs/OPERATING_RULES.md` | 사용자, 운영자, 리뷰어 | Issue/PR 상태를 해석할 때 | label과 댓글 규칙은 무엇인가 |
+| `docs/PROJECT_ONBOARDING.md` | 도입 담당자, 운영자 | 다른 프로젝트에 붙일 때 | 대상 프로젝트에 무엇을 준비해야 하나 |
+| `docs/GITHUB_ACTIONS.md` | 검증 담당자 | GitHub Actions로 실검증할 때 | workflow를 어떻게 실행하고 무엇을 확인하나 |
 | `docs/ARCHITECTURE.md` | 개발자 | 구조를 바꾸거나 확장할 때 | 컴포넌트가 어떻게 나뉘고 어디에서 실행되나 |
 | `docs/MVP_VALIDATION.md` | 개발자, 검증자 | 요구사항 충족 여부를 볼 때 | 현재 테스트가 무엇을 보장하나 |
+
+## 역할별로 보면
+
+| 역할 | 먼저 볼 문서 | 그 사람이 하는 일 |
+| --- | --- | --- |
+| 요청자 | `README.md` | Issue 작성, `agent:queued` label 요청 또는 부여, 에이전트 질문에 답변 |
+| 검토자 | `README.md`, `docs/OPERATING_RULES.md` | PR/MR 보고서와 변경 파일 확인, 사용자 테스트 결과 기록 |
+| 운영자 | `docs/OPERATING_RULES.md`, `docs/GITHUB_ACTIONS.md` | label, token, runner, workflow 실행 상태 관리 |
+| 도입 담당자 | `docs/PROJECT_ONBOARDING.md` | 대상 프로젝트 설정, `fix.command`, 실행 위치 결정 |
+| 개발자 | `docs/ARCHITECTURE.md`, `docs/MVP_VALIDATION.md` | 코드 구조 이해, 테스트 추가, 기능 확장 |
 
 ## 사용자와 에이전트의 경계
 

@@ -2,6 +2,8 @@
 
 이 문서는 구현이 합의한 MVP 요구사항을 어떻게 만족하는지 정리합니다.
 
+처음 사용하는 일반 조직원은 이 문서를 읽지 않아도 됩니다. 실제 사용 절차는 repository root의 `README.md`, GitHub Actions 검증 절차는 `docs/GITHUB_ACTIONS.md`를 봅니다.
+
 읽는 시점:
 
 - 로컬 테스트가 무엇을 보장하는지 확인할 때
