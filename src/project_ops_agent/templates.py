@@ -9,6 +9,10 @@ NEEDS_INFO_MARKER = "<!-- project-ops-agent:needs-info -->"
 BLOCKED_MARKER = "<!-- project-ops-agent:blocked -->"
 MR_COMMENT_MARKER = "<!-- project-ops-agent:mr-created -->"
 USER_TEST_MARKER = "<!-- project-ops-agent:user-test -->"
+USER_TEST_RESULT_MARKER = "<!-- project-ops-agent:user-test-result -->"
+AGENT_VISIBLE_NOTICE = """> **작성 주체:** Project Ops Agent
+> 작성 계정이 사용자와 같아 보여도 이 표식이 있으면 에이전트가 작성한 운영 댓글입니다.
+"""
 
 AMBIGUITY_LABELS = {
     "requirement_ambiguous": "요구사항이 모호함",
@@ -32,6 +36,7 @@ RISK_LABELS = {
 
 def render_issue_analysis(analysis: IssueAnalysis) -> str:
     return f"""{ANALYSIS_MARKER}
+{AGENT_VISIBLE_NOTICE}
 ## 에이전트 분석
 
 - 요약: {escape(analysis.summary)}
@@ -47,6 +52,7 @@ def render_issue_analysis(analysis: IssueAnalysis) -> str:
 def render_needs_info(analysis: IssueAnalysis) -> str:
     reasons = analysis.ambiguity_reasons or analysis.policy_flags
     return f"""{NEEDS_INFO_MARKER}
+{AGENT_VISIBLE_NOTICE}
 ## 에이전트 추가 정보 필요
 
 코드를 변경하기 전에 사용자의 방향 결정이 필요합니다.
@@ -63,12 +69,23 @@ def render_needs_info(analysis: IssueAnalysis) -> str:
 - C: 원인 분석까지만 진행하고 코드 수정은 만들지 않습니다.
 
 ### 답변 형식
-`@agent A`
+제시된 선택지를 그대로 고를 수 있습니다.
+
+```text
+@agent A
+```
+
+선택지 밖의 방향이 더 맞다면 직접 지시할 수 있습니다.
+
+```text
+@agent 방향: 현재 정책은 유지하되 로그인 실패 메시지만 사용자가 이해하기 쉽게 바꿔주세요.
+```
 """
 
 
 def render_blocked(reason: str) -> str:
     return f"""{BLOCKED_MARKER}
+{AGENT_VISIBLE_NOTICE}
 ## 에이전트 중단
 
 {escape(reason)}
@@ -77,24 +94,56 @@ def render_blocked(reason: str) -> str:
 
 def render_mr_issue_comment(mr: MergeRequest) -> str:
     return f"""{MR_COMMENT_MARKER}
+{AGENT_VISIBLE_NOTICE}
 ## 에이전트 MR/PR 생성됨
 
 - MR: {mr.web_url}
 """
 
 
-def render_user_test_request(mr: MergeRequest) -> str:
+def render_user_test_request(
+    mr: MergeRequest,
+    analysis: IssueAnalysis | None = None,
+    changed_files: list[str] | None = None,
+    verification: list[CommandResult] | None = None,
+) -> str:
+    checklist = ""
+    if analysis:
+        checklist = f"""
+### 먼저 확인할 것
+{_user_test_checklist(analysis, changed_files or [], verification or [])}
+"""
     return f"""{USER_TEST_MARKER}
+{AGENT_VISIBLE_NOTICE}
 ## 사용자 테스트 필요
 
 MR/PR이 생성되었습니다. 병합 전 실제 사용자 테스트 결과를 이 이슈 댓글에 남겨야 합니다.
 
 - MR/PR: {mr.web_url}
+{checklist}
 
 테스트 후 이 이슈에 아래 형식으로 답변하세요.
 
 - `@agent test-pass`
 - `@agent test-fail <사유>`
+"""
+
+
+def render_user_test_pass_confirmation() -> str:
+    return f"""{USER_TEST_RESULT_MARKER}
+{AGENT_VISIBLE_NOTICE}
+## 사용자 테스트 통과 확인
+
+이슈 댓글에서 `@agent test-pass`가 확인되었습니다.
+"""
+
+
+def render_user_test_fail_confirmation(reason: str) -> str:
+    return f"""{USER_TEST_RESULT_MARKER}
+{AGENT_VISIBLE_NOTICE}
+## 변경 요청됨
+
+사용자 테스트 실패가 기록되었습니다: {escape(reason)}
 """
 
 
@@ -110,11 +159,13 @@ def render_mr_report(
     status = "검토 준비됨" if tests_ok else "검토 필요 - 검증이 완료되지 않음"
     decision = analysis.decision or "사용자 결정 불필요"
     issue_link = f"#{issue.iid}"
+    review_files = changed_files or fix.files_changed
     if issue.web_url:
         issue_link = f'<a href="{escape(issue.web_url)}">#{issue.iid}</a>'
 
     return f"""# 에이전트 보고서
 
+{AGENT_VISIBLE_NOTICE}
 <table>
 <tr><td><b>이슈</b></td><td>{issue_link}</td></tr>
 <tr><td><b>위험도</b></td><td>{escape(_risk_label(analysis.risk))}</td></tr>
@@ -122,6 +173,14 @@ def render_mr_report(
 <tr><td><b>사용자 결정</b></td><td>{escape(decision)}</td></tr>
 <tr><td><b>사용자 테스트</b></td><td>병합 전 필요</td></tr>
 </table>
+
+## 사용자가 먼저 확인할 것
+
+{_user_test_checklist(analysis, review_files, verification)}
+
+## 코드 리뷰 참고
+
+{_code_review_hints(analysis, review_files, verification)}
 
 ## 검토 요약
 
@@ -148,7 +207,7 @@ def render_mr_report(
 <summary>구현 상세</summary>
 
 - 변경 파일:
-{_bullet_lines(changed_files or fix.files_changed)}
+{_bullet_lines(review_files)}
 - 수정 요약: {escape(fix.summary or "제공되지 않음")}
 
 </details>
@@ -200,6 +259,47 @@ def _verification_summary(results: list[CommandResult]) -> str:
     if failed:
         return f"실패: {', '.join(failed)}"
     return "설정된 모든 검증 명령 통과"
+
+
+def _user_test_checklist(analysis: IssueAnalysis, changed_files: list[str], results: list[CommandResult]) -> str:
+    lines: list[str] = []
+    if analysis.reproduction:
+        lines.append(f"- 재현 조건으로 다시 확인: {escape(analysis.reproduction)}")
+    else:
+        lines.append("- 이슈에 적힌 문제 상황이 더 이상 발생하지 않는지 확인합니다.")
+    if analysis.expected_behavior:
+        lines.append(f"- 기대 동작 확인: {escape(analysis.expected_behavior)}")
+    else:
+        lines.append("- 사용자가 기대하는 정상 동작과 실제 결과가 맞는지 확인합니다.")
+    if changed_files:
+        lines.append(f"- 변경 범위 확인: {_inline_items(changed_files)}")
+    lines.append(f"- 검증 결과 확인: {escape(_verification_summary(results))}")
+    if any(not result.ok for result in results):
+        lines.append("- 실패한 검증이 있으면 통과 댓글을 남기기 전에 원인을 확인합니다.")
+    return "\n".join(lines)
+
+
+def _code_review_hints(analysis: IssueAnalysis, changed_files: list[str], results: list[CommandResult]) -> str:
+    lines: list[str] = []
+    if changed_files:
+        lines.append(f"- 우선 볼 파일: {_inline_items(changed_files)}")
+    else:
+        lines.append("- 변경 파일 목록이 비어 있으면 PR Files changed 탭에서 실제 diff를 확인합니다.")
+    lines.append("- 리뷰 관점: 변경이 이슈 범위와 사용자 결정에 맞는지 확인합니다.")
+    if analysis.risk != "low":
+        lines.append(f"- 위험도: {escape(_risk_label(analysis.risk))}. 정책 변경이나 영향 범위를 더 신중히 봅니다.")
+    if any(not result.ok for result in results):
+        lines.append("- 검증 실패가 있으면 실패 로그를 먼저 보고 merge를 보류합니다.")
+    lines.append("- 상세 구현과 로그는 아래 접이식 섹션을 펼쳐 확인합니다.")
+    return "\n".join(lines)
+
+
+def _inline_items(items: list[str], limit: int = 5) -> str:
+    visible = items[:limit]
+    rendered = ", ".join(f"`{escape(item)}`" for item in visible)
+    if len(items) > limit:
+        rendered = f"{rendered} 외 {len(items) - limit}개"
+    return rendered
 
 
 def _attention_summary(analysis: IssueAnalysis, results: list[CommandResult]) -> str:

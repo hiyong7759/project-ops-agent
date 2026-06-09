@@ -126,6 +126,82 @@ class OrchestratorTests(unittest.TestCase):
         self.assertIn("<details>", client.created_mrs[0])
         self.assertIn("사용자 테스트 게이트", client.created_mrs[0])
 
+    def test_custom_direction_comment_can_create_mr(self):
+        from project_ops_agent.models import Comment
+
+        client = FakeGitLab(comments=[Comment(id=1, body="@agent 방향: 기존 정책은 유지하고 오류 문구만 명확하게 바꿔주세요.")])
+        issue = Issue(
+            iid=7,
+            title="로그인 오류",
+            description="로그인이 안됩니다",
+            labels=["agent:needs-info"],
+        )
+        result = Orchestrator(
+            client,
+            profile(),
+            git_runner=FakeGitRunner(),
+            command_runner=FakeCommandRunner(),
+            fix_provider=FakeFixProvider(),
+        ).process_issue(issue)
+        self.assertEqual("needs-user-test", result.status)
+        self.assertIn("@agent 방향: 기존 정책은 유지하고 오류 문구만 명확하게 바꿔주세요.", client.created_mrs[0])
+
+    def test_needs_info_issue_waits_without_new_user_direction(self):
+        from project_ops_agent.models import Comment
+        from project_ops_agent.templates import NEEDS_INFO_MARKER
+
+        client = FakeGitLab(
+            comments=[
+                Comment(
+                    id=1,
+                    body=f"{NEEDS_INFO_MARKER}\n## 에이전트 추가 정보 필요\n```text\n@agent A\n```",
+                    author_username="hiyong7759",
+                )
+            ]
+        )
+        issue = Issue(
+            iid=9,
+            title="로그인 오류",
+            description="로그인이 안됩니다",
+            labels=["agent:needs-info"],
+        )
+        result = Orchestrator(
+            client,
+            profile(),
+            git_runner=FakeGitRunner(),
+            command_runner=FakeCommandRunner(),
+            fix_provider=FakeFixProvider(),
+        ).process_issue(issue)
+        self.assertEqual("needs-info", result.status)
+        self.assertEqual([], client.label_updates)
+        self.assertEqual([], client.created_mrs)
+
+    def test_needs_info_issue_resumes_with_new_user_direction_after_marker(self):
+        from project_ops_agent.models import Comment
+        from project_ops_agent.templates import NEEDS_INFO_MARKER
+
+        client = FakeGitLab(
+            comments=[
+                Comment(id=1, body=f"{NEEDS_INFO_MARKER}\n## 에이전트 추가 정보 필요\n`@agent A`"),
+                Comment(id=2, body="@agent A", author_username="user"),
+            ]
+        )
+        issue = Issue(
+            iid=10,
+            title="로그인 오류",
+            description="로그인이 안됩니다",
+            labels=["agent:needs-info"],
+        )
+        result = Orchestrator(
+            client,
+            profile(),
+            git_runner=FakeGitRunner(),
+            command_runner=FakeCommandRunner(),
+            fix_provider=FakeFixProvider(),
+        ).process_issue(issue)
+        self.assertEqual("needs-user-test", result.status)
+        self.assertIn("agent:needs-user-test", client.label_updates[-1])
+
     def test_user_test_pass_marks_done(self):
         from project_ops_agent.models import Comment
 
@@ -143,6 +219,54 @@ class OrchestratorTests(unittest.TestCase):
         result = Orchestrator(client, profile()).process_issue(issue)
         self.assertEqual("changes-requested", result.status)
         self.assertIn("agent:changes-requested", client.label_updates[-1])
+
+    def test_agent_user_test_request_does_not_mark_done(self):
+        from project_ops_agent.models import Comment
+        from project_ops_agent.templates import USER_TEST_MARKER
+
+        client = FakeGitLab(
+            comments=[
+                Comment(
+                    id=1,
+                    body=f"{USER_TEST_MARKER}\n## 사용자 테스트 필요\n- `@agent test-pass`",
+                    author_username="hiyong7759",
+                )
+            ]
+        )
+        issue = Issue(iid=8, title="Ready", description="Done", labels=["agent:needs-user-test"])
+        result = Orchestrator(client, profile()).process_issue(issue)
+        self.assertEqual("needs-user-test", result.status)
+        self.assertEqual([], client.label_updates)
+
+    def test_user_test_result_before_request_does_not_mark_done(self):
+        from project_ops_agent.models import Comment
+        from project_ops_agent.templates import USER_TEST_MARKER
+
+        client = FakeGitLab(
+            comments=[
+                Comment(id=1, body="@agent test-pass", author_username="user"),
+                Comment(id=2, body=f"{USER_TEST_MARKER}\n## 사용자 테스트 필요"),
+            ]
+        )
+        issue = Issue(iid=11, title="Ready", description="Done", labels=["agent:needs-user-test"])
+        result = Orchestrator(client, profile()).process_issue(issue)
+        self.assertEqual("needs-user-test", result.status)
+        self.assertEqual([], client.label_updates)
+
+    def test_user_test_result_after_request_marks_done(self):
+        from project_ops_agent.models import Comment
+        from project_ops_agent.templates import USER_TEST_MARKER
+
+        client = FakeGitLab(
+            comments=[
+                Comment(id=1, body=f"{USER_TEST_MARKER}\n## 사용자 테스트 필요"),
+                Comment(id=2, body="@agent test-pass", author_username="user"),
+            ]
+        )
+        issue = Issue(iid=12, title="Ready", description="Done", labels=["agent:needs-user-test"])
+        result = Orchestrator(client, profile()).process_issue(issue)
+        self.assertEqual("done", result.status)
+        self.assertIn("agent:done", client.label_updates[-1])
 
     def test_blocked_issue_waits_until_new_user_resume_comment(self):
         from project_ops_agent.models import Comment

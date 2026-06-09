@@ -19,9 +19,9 @@
 | 확인 대상 | 사용자가 보는 곳 | 의미 |
 | --- | --- | --- |
 | Issue 상태 | GitHub Issue label | 에이전트가 현재 어느 단계에 있는지 |
-| 에이전트 질문 | GitHub Issue comment | 사용자가 `@agent A/B/C`로 판단해야 할 내용 |
+| 에이전트 질문 | GitHub Issue comment | 사용자가 `@agent A/B/C` 또는 `@agent 방향: <내용>`으로 판단해야 할 내용 |
 | PR 생성 | GitHub Pull Requests | 에이전트가 branch push와 PR 생성을 완료했는지 |
-| PR 보고서 | PR 본문 | 분석, 사용자 결정, 검증 결과가 읽을 수 있게 정리됐는지 |
+| PR 보고서 | PR 본문 | 먼저 확인할 테스트 항목, 분석, 사용자 결정, 검증 결과가 읽을 수 있게 정리됐는지 |
 | 변경 파일 | PR Files changed | demo `fix.command`가 검증용 파일을 만들었는지 |
 | 사용자 테스트 게이트 | 연결 Issue label | PR 생성 뒤에도 `agent:needs-user-test`에서 멈추는지 |
 | 완료 처리 | Issue comment/label | `@agent test-pass` 후 `agent:done`으로 이동하는지 |
@@ -36,9 +36,9 @@
 | --- | --- | --- | --- |
 | 작업 맡김 (`agent:queued`) | GitHub Issue | 이 이슈를 에이전트가 처리하도록 표시함 | 이슈 내용이 충분한지 확인하고 workflow 실행 |
 | 분석 결과 확인 (`agent:analyzing`) | Issue comment, Actions log | 에이전트가 이슈를 읽고 판단 중 | 보통 기다림 |
-| 질문에 답하기 (`agent:needs-info`) | Issue comment | 코드 변경 전에 사용자의 방향 결정이 필요함 | Issue 댓글에 `@agent A` 같은 답변 작성 후 workflow 재실행 |
+| 질문에 답하기 (`agent:needs-info`) | Issue comment | 코드 변경 전에 사용자의 방향 결정이 필요함 | Issue 댓글에 `@agent A` 또는 `@agent 방향: <내용>` 같은 답변 작성 후 workflow 재실행 |
 | 수정/검증 진행 (`agent:fixing`, `agent:verifying`) | Actions log | demo `fix.command`와 테스트가 실행 중 | workflow가 끝날 때까지 기다림 |
-| PR 확인 (`agent:needs-user-test`) | Pull Requests, PR 본문, Files changed | PR이 생성됐고 사람이 검토해야 함 | PR 보고서와 변경 파일을 보고 결과를 Issue 댓글에 작성 |
+| PR 확인 (`agent:needs-user-test`) | Pull Requests, PR 본문, Files changed | PR이 생성됐고 사람이 검토해야 함 | PR 본문의 “사용자가 먼저 확인할 것”을 테스트하고, 필요하면 Files changed에서 코드 리뷰 |
 | 완료 또는 보완 (`agent:done`, `agent:changes-requested`) | Issue label/comment | 사용자 테스트 결과가 반영됨 | 필요하면 사람이 merge하거나 보완 이슈를 이어감 |
 
 PR이 아직 없다면 PR 본문을 확인하는 단계가 아닙니다. 먼저 Issue 댓글에 질문이 남았는지, Actions 로그에 권한 또는 검증 오류가 있는지 확인합니다.
@@ -164,7 +164,8 @@ python3 -m unittest discover -s tests
 | 상황 | 사용자가 해석할 의미 | 사용자가 할 일 | 에이전트가 다음 run에서 할 일 |
 | --- | --- | --- | --- |
 | Issue에 추가 정보 요청 댓글이 있음 | 에이전트가 코드 변경 전 방향을 묻고 있음 | 연결 Issue에 `@agent A`, `@agent B`, `@agent C` 중 하나를 댓글로 작성 | 댓글을 읽고 수정 단계로 진행 |
-| PR이 생성되고 Issue가 사용자 테스트 대기 상태임 | 자동 수정과 기본 검증은 끝났고 사람이 확인할 차례 | PR 본문, 변경 파일, workflow 검증 결과를 확인 | 테스트 결과 댓글을 기다림 |
+| 선택지 밖의 방향이 필요함 | A/B/C보다 더 맞는 처리 방향이 있음 | 연결 Issue에 `@agent 방향: <내용>` 형식으로 직접 지시 | 해당 방향을 사용자 결정으로 기록하고 수정 단계로 진행 |
+| PR이 생성되고 Issue가 사용자 테스트 대기 상태임 | 자동 수정과 기본 검증은 끝났고 사람이 확인할 차례 | PR 본문의 “사용자가 먼저 확인할 것”, 변경 파일, workflow 검증 결과를 확인 | 테스트 결과 댓글을 기다림 |
 | 확인 결과가 통과임 | 이 PR은 사용자가 보기에 반영 가능함 | 연결 Issue에 `@agent test-pass` 댓글 작성 | Issue를 완료 상태로 이동 |
 | 확인 결과가 실패임 | 이 PR은 보완이 필요함 | 연결 Issue에 `@agent test-fail <사유>` 댓글 작성 | Issue를 변경 요청 상태로 이동 |
 
@@ -203,6 +204,18 @@ PR은 `fix.command`가 성공하고 branch push와 PR 생성 API가 모두 통�
 | Repository Actions 설정 | PR 생성 권한이 켜져 있는지 확인 | Workflow permissions를 read/write와 PR 생성 허용으로 변경 |
 | Issue comment의 에이전트 중단 메시지 | 자동 진행이 막힌 원인을 확인 | 원인을 해결한 뒤 Issue에 `@agent proceed` 작성 |
 
+## PR이 있을 때 확인 순서
+
+PR이 생성되면 먼저 PR 본문을 위에서 아래로 읽습니다.
+
+| 확인할 곳 | 무엇을 보면 되는가 | 판단 기준 |
+| --- | --- | --- |
+| 작성 주체 표식 | `작성 주체: Project Ops Agent`가 있는지 | 이 본문이 에이전트 보고서인지 구분 |
+| 사용자가 먼저 확인할 것 | 재현 조건, 기대 동작, 변경 범위, 검증 결과 | 실제 사용자 테스트의 우선순위 |
+| 코드 리뷰 참고 | 우선 볼 파일과 리뷰 관점 | 필요할 때 Files changed로 이동 |
+| 검토 요약 | 원인/현상, 변경 요약, 주의 사항 | 요청과 변경 방향이 맞는지 |
+| 접이식 상세 | 이슈 분석, 구현 상세, 검증 로그, 결정 로그 | 더 깊은 코드 리뷰나 실패 원인 확인 |
+
 ## 테스트용 이슈 예시
 
 모호한 이슈를 만들어 에이전트가 코드 변경 전 사용자 방향 결정을 요청하는지 검증합니다.
@@ -218,6 +231,12 @@ Body:
 
 ```text
 @agent A
+```
+
+선택지가 맞지 않으면 사용자가 직접 방향을 남길 수 있습니다.
+
+```text
+@agent 방향: 로그인 정책은 바꾸지 말고, 실패 메시지와 테스트만 보강해주세요.
 ```
 
 PR이 생성되고 이슈가 사용자 테스트 대기 상태(`agent:needs-user-test`)가 되면 PR을 직접 확인하고 테스트합니다. 결과는 연결된 이슈에 남깁니다.

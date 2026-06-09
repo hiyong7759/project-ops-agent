@@ -18,8 +18,11 @@
 | PostgreSQL 없음 | DB package 또는 DB module 없음 |
 | 이슈 상태를 label로 관리 | `state.py` |
 | 사용자 답변은 이슈 댓글로만 수집 | `clarification.py` |
+| 에이전트 제시 선택지 밖의 사용자 방향 수집 | `@agent 방향: <내용>`, `clarification.py` |
+| 에이전트 댓글 작성 주체 표시 | `templates.py` |
 | 모호한 이슈는 중단 | `IssueAnalyzer`, `PolicyEngine`, `Orchestrator` |
 | MR/PR 보고서에 접이식 상세 섹션 사용 | `templates.py` |
+| MR/PR 보고서에 사용자 테스트 우선 확인 항목 제공 | `templates.py` |
 | MR/PR 이후 사용자 테스트 게이트 유지 | `agent:needs-user-test`, `@agent test-pass`, `@agent test-fail` |
 | 프로젝트별 설정 | `ProjectProfile`, TOML config |
 | 외부 수정 도구 경계 | `ExternalFixProvider`, `fix.command` |
@@ -42,6 +45,8 @@ python3 -m unittest discover -s tests
 
 - 처리 대상으로 등록된 Issue가 분석되고, 모호하면 코드 변경 전 사용자 결정 대기 상태가 되는지
 - 사용자가 Issue 댓글에 `@agent A`를 남기면 다음 실행에서 수정과 PR/MR 생성으로 이어지는지
+- 사용자가 Issue 댓글에 `@agent 방향: <내용>`을 남기면 선택지 밖의 방향도 사용자 결정으로 기록되는지
+- 에이전트 안내 댓글 안의 예시 명령을 사용자 답변으로 오인하지 않는지
 - PR/MR이 만들어져도 바로 완료가 아니라 사용자 테스트 대기 상태로 멈추는지
 - 사용자가 Issue 댓글에 `@agent test-pass`를 남겨야 완료 상태가 되는지
 - 사용자가 Issue 댓글에 `@agent test-fail <사유>`를 남기면 변경 요청 상태가 되는지
@@ -53,6 +58,7 @@ python3 -m unittest discover -s tests
 - `agent:*` label이 상호 배타적으로 유지되는지
 - 모호한 이슈가 사용자 방향 결정 대기 상태(`agent:needs-info`)로 이동하는지
 - 사용자 방향 결정이 이슈 댓글에서 읽히는지
+- 에이전트 marker가 있는 댓글은 사용자 방향 결정과 사용자 테스트 결과에서 제외되는지
 - 답변이 있는 이슈가 MR/PR 생성으로 진행되는지
 - MR/PR 생성 후 바로 done이 아니라 사용자 테스트 대기 상태(`agent:needs-user-test`)가 되는지
 - `@agent test-pass`, `@agent test-fail` 댓글이 done 또는 changes-requested로 전이되는지

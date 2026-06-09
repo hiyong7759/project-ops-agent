@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from .clarification import has_marker, latest_agent_decision, latest_agent_decision_after_marker, latest_user_test_result
+from .clarification import (
+    has_marker,
+    latest_agent_decision,
+    latest_agent_decision_after_marker,
+    latest_user_test_result,
+    latest_user_test_result_after_marker,
+)
 from .command_runner import CommandRunner
 from .fix_provider import ExternalFixProvider
 from .git_runner import GitRunner
@@ -19,6 +25,8 @@ from .templates import (
     render_mr_issue_comment,
     render_mr_report,
     render_needs_info,
+    render_user_test_fail_confirmation,
+    render_user_test_pass_confirmation,
     render_user_test_request,
     USER_TEST_MARKER,
 )
@@ -60,6 +68,15 @@ class Orchestrator:
             return self._process_user_test(issue, comments)
 
         decision = latest_agent_decision(comments)
+        if state == "agent:needs-info":
+            decision = latest_agent_decision_after_marker(comments, NEEDS_INFO_MARKER)
+            if not decision:
+                return ProcessResult(
+                    "needs-info",
+                    "추가 정보 요청 이후 사용자 방향 결정을 기다리는 중입니다.",
+                    issue.iid,
+                )
+
         if state == "agent:blocked":
             decision = latest_agent_decision_after_marker(comments, BLOCKED_MARKER)
             if not decision:
@@ -139,27 +156,27 @@ class Orchestrator:
             if not has_marker(comments, MR_COMMENT_MARKER):
                 self.gitlab.post_issue_comment(issue.iid, render_mr_issue_comment(mr))
             if not has_marker(comments, USER_TEST_MARKER):
-                self.gitlab.post_issue_comment(issue.iid, render_user_test_request(mr))
+                self.gitlab.post_issue_comment(
+                    issue.iid,
+                    render_user_test_request(mr, analysis, changed_files, [*install_results, *verification]),
+                )
             self._set_labels(issue, "agent:needs-user-test")
             return ProcessResult("needs-user-test", "MR/PR을 생성했고 사용자 테스트를 기다리는 중입니다.", issue.iid, mr_url=mr.web_url)
         except Exception as exc:
             return self._block(issue, str(exc))
 
     def _process_user_test(self, issue: Issue, comments) -> ProcessResult:
-        result, reason = latest_user_test_result(comments)
+        if has_marker(comments, USER_TEST_MARKER):
+            result, reason = latest_user_test_result_after_marker(comments, USER_TEST_MARKER)
+        else:
+            result, reason = latest_user_test_result(comments)
         if result == "pass":
-            self.gitlab.post_issue_comment(
-                issue.iid,
-                "## 사용자 테스트 통과 확인\n\n이슈 댓글에서 `@agent test-pass`가 확인되었습니다.",
-            )
+            self.gitlab.post_issue_comment(issue.iid, render_user_test_pass_confirmation())
             self._set_labels(issue, "agent:done")
             return ProcessResult("done", "사용자 테스트가 통과했습니다.", issue.iid)
         if result == "fail":
             message = reason or "상세 사유 없이 사용자 테스트 실패가 기록되었습니다."
-            self.gitlab.post_issue_comment(
-                issue.iid,
-                f"## 변경 요청됨\n\n사용자 테스트 실패가 기록되었습니다: {message}",
-            )
+            self.gitlab.post_issue_comment(issue.iid, render_user_test_fail_confirmation(message))
             self._set_labels(issue, "agent:changes-requested")
             return ProcessResult("changes-requested", message, issue.iid)
         return ProcessResult("needs-user-test", "`@agent test-pass` 또는 `@agent test-fail` 댓글을 기다리는 중입니다.", issue.iid)

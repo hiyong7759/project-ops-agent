@@ -49,11 +49,13 @@
 | 흐름 | 사용자에게 보이는 의미 | 사용자가 할 일 | 자동화되는 일 |
 | --- | --- | --- | --- |
 | 작업 맡김 (`agent:queued`) | 이 Issue를 에이전트 처리 대상으로 올림 | Issue를 작성하고 처리 label을 붙임 | 에이전트가 다음 실행에서 Issue를 찾음 |
-| 방향 판단 대기 (`agent:needs-info`) | 요구사항이 모호해서 코드 변경 전 멈춤 | Issue 댓글에 `@agent A/B/C` 또는 승인 댓글 작성 | 에이전트가 분석과 선택지를 댓글로 남김 |
+| 방향 판단 대기 (`agent:needs-info`) | 요구사항이 모호해서 코드 변경 전 멈춤 | Issue 댓글에 `@agent A/B/C`, `@agent 방향: <내용>` 또는 승인 댓글 작성 | 에이전트가 분석과 선택지를 댓글로 남김 |
 | 수정과 검증 진행 (`agent:fixing`, `agent:verifying`) | 선택한 방향으로 변경과 테스트가 진행 중 | 보통 기다림 | `fix.command` 실행, 검증 명령 실행, commit 생성 |
-| PR/MR 확인 대기 (`agent:needs-user-test`) | PR/MR이 생성됐고 사람이 확인해야 함 | PR/MR 본문, 변경 파일, 검증 결과를 확인 | 보고서 작성, Issue 상태 전이 |
+| PR/MR 확인 대기 (`agent:needs-user-test`) | PR/MR이 생성됐고 사람이 확인해야 함 | PR/MR의 “사용자가 먼저 확인할 것”, 변경 파일, 검증 결과를 확인 | 보고서 작성, Issue 상태 전이 |
 | 결과 기록 (`agent:done`, `agent:changes-requested`) | 사용자 테스트 결과가 Issue에 기록됨 | `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | 댓글을 읽고 완료 또는 변경 요청으로 상태 변경 |
 | 병합 | 조직 절차에 따라 최종 반영 여부 결정 | 사람이 merge 판단 | 에이전트는 자동 merge하지 않음 |
+
+에이전트 댓글이나 PR/MR 보고서에는 `작성 주체: Project Ops Agent` 표식이 들어갑니다. 작성 계정이 사용자와 같아 보여도 이 표식이 있으면 에이전트 산출물로 해석합니다.
 
 ## 자동화되는 것과 아닌 것
 
