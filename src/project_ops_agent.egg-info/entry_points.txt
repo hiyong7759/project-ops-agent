@@ -1,0 +1,3 @@
+[console_scripts]
+gitlab-project-ops-agent = project_ops_agent.cli:main
+project-ops-agent = project_ops_agent.cli:main

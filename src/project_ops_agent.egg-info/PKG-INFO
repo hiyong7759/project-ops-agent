@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: project-ops-agent
+Version: 0.1.0
+Summary: Single-project operations agent for issue triage, clarification, verification, and MR/PR reporting.
+Requires-Python: >=3.12
