@@ -91,7 +91,7 @@ class GitHubClient:
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
             "Content-Type": "application/json",
-            "User-Agent": "gitlab-project-ops-agent",
+            "User-Agent": "project-ops-agent",
         }
         if data is not None:
             body = json.dumps(data).encode("utf-8")

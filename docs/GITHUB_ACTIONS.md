@@ -104,6 +104,8 @@ use_current_checkout = true
 
 이 설정은 `actions/checkout`이 받아온 저장소에서 바로 branch 생성, commit, push를 수행하게 합니다. 별도 clone을 피할 수 있고 private repo credential 문제도 줄어듭니다.
 
+workflow는 checkout 시 전체 이력을 가져오고, 에이전트는 `origin/main` 같은 원격 기준 branch에서 작업 branch를 다시 만듭니다. PR 생성 권한 오류처럼 branch push 이후 PR 생성 전에 실패한 경우에도, 권한을 고친 뒤 재실행하면 에이전트가 자신의 `agent/...` branch를 갱신해 다시 시도할 수 있습니다.
+
 ## demo fix.command
 
 `scripts/demo_fix_command.py`는 실무 수정 도구가 아닙니다. PR 생성 경로를 검증하기 위한 데모 명령입니다.
@@ -204,6 +206,7 @@ PR은 `fix.command`가 성공하고 branch push와 PR 생성 API가 모두 통�
 | Actions run log | 테스트 실패, 권한 오류, push 오류가 있는지 확인 | 오류 메시지에 맞게 설정 또는 코드를 수정 |
 | Repository Actions 설정 | PR 생성 권한이 켜져 있는지 확인 | Workflow permissions를 read/write와 PR 생성 허용으로 변경 |
 | Issue comment의 에이전트 중단 메시지 | 자동 진행이 막힌 원인을 확인 | 원인을 해결한 뒤 Issue에 `@agent proceed` 작성 |
+| 기존 agent branch | 이전 실패에서 남은 `agent/...` branch가 있는지 확인 | 보통 삭제하지 않아도 됩니다. 에이전트가 재시도 때 자신의 branch를 갱신합니다. |
 
 ## PR이 있을 때 확인 순서
 

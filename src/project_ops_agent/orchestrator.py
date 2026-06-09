@@ -4,7 +4,6 @@ from .clarification import (
     has_marker,
     latest_agent_decision,
     latest_agent_decision_after_marker,
-    latest_user_test_result,
     latest_user_test_result_after_marker,
 )
 from .command_runner import CommandRunner
@@ -166,10 +165,13 @@ class Orchestrator:
             return self._block(issue, str(exc))
 
     def _process_user_test(self, issue: Issue, comments) -> ProcessResult:
-        if has_marker(comments, USER_TEST_MARKER):
-            result, reason = latest_user_test_result_after_marker(comments, USER_TEST_MARKER)
-        else:
-            result, reason = latest_user_test_result(comments)
+        if not has_marker(comments, USER_TEST_MARKER):
+            return ProcessResult(
+                "needs-user-test",
+                "사용자 테스트 안내 댓글이 없어 테스트 결과를 처리하지 않습니다.",
+                issue.iid,
+            )
+        result, reason = latest_user_test_result_after_marker(comments, USER_TEST_MARKER)
         if result == "pass":
             self.gitlab.post_issue_comment(issue.iid, render_user_test_pass_confirmation())
             self._set_labels(issue, "agent:done")

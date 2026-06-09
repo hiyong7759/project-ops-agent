@@ -187,7 +187,7 @@ def render_mr_report(
 - 원인/현상: {escape(analysis.observed_behavior or analysis.summary)}
 - 변경 요약: {escape(fix.summary or "변경 파일을 확인하세요.")}
 - 검증: {escape(_verification_summary(verification))}
-- 사용자 테스트: 필요합니다. 연결된 이슈에 `@agent test-pass` 또는 `@agent test-fail <사유>`로 답변하세요.
+- 사용자 테스트: 필요합니다. 연결된 이슈의 사용자 테스트 안내 댓글 이후에 `@agent test-pass` 또는 `@agent test-fail <사유>`로 답변하세요.
 - 주의 사항: {escape(_attention_summary(analysis, verification))}
 
 <details>
@@ -223,6 +223,7 @@ def render_mr_report(
 <summary>사용자 테스트 게이트</summary>
 
 - 이 MR/PR은 사용자 테스트 결과가 기록되기 전까지 완료로 간주하지 않습니다.
+- 사용자 테스트 안내 댓글보다 먼저 작성된 결과 댓글은 완료/실패 신호로 사용하지 않습니다.
 - 통과 형식: `@agent test-pass`
 - 실패 형식: `@agent test-fail <사유>`
 - 이슈가 의사결정의 단일 기준으로 남도록 답변은 반드시 연결된 이슈 댓글에 작성해야 합니다.

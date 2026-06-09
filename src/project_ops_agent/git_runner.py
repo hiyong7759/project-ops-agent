@@ -32,8 +32,8 @@ class GitRunner:
     def create_branch(self, workspace: Path, issue: Issue) -> str:
         branch = self.branch_name(issue)
         base = self.profile.default_branch
-        self._run(["git", "checkout", base], cwd=workspace)
-        self._run(["git", "pull", "--ff-only", "origin", base], cwd=workspace)
+        self._run(["git", "fetch", "origin", base], cwd=workspace)
+        self._run(["git", "checkout", "-B", base, f"origin/{base}"], cwd=workspace)
         self._run(["git", "checkout", "-B", branch], cwd=workspace)
         return branch
 
@@ -57,7 +57,7 @@ class GitRunner:
         return True
 
     def push_branch(self, workspace: Path, branch: str) -> None:
-        self._run(["git", "push", "-u", "origin", branch], cwd=workspace)
+        self._run(["git", "push", "--force-with-lease", "-u", "origin", branch], cwd=workspace)
 
     def has_changes(self, workspace: Path) -> bool:
         result = self._run(["git", "status", "--porcelain"], cwd=workspace, check=False)

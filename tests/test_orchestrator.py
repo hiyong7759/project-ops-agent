@@ -204,8 +204,14 @@ class OrchestratorTests(unittest.TestCase):
 
     def test_user_test_pass_marks_done(self):
         from project_ops_agent.models import Comment
+        from project_ops_agent.templates import USER_TEST_MARKER
 
-        client = FakeGitLab(comments=[Comment(id=1, body="@agent test-pass")])
+        client = FakeGitLab(
+            comments=[
+                Comment(id=1, body=f"{USER_TEST_MARKER}\n## 사용자 테스트 필요"),
+                Comment(id=2, body="@agent test-pass"),
+            ]
+        )
         issue = Issue(iid=3, title="Ready", description="Done", labels=["agent:needs-user-test"])
         result = Orchestrator(client, profile()).process_issue(issue)
         self.assertEqual("done", result.status)
@@ -213,12 +219,27 @@ class OrchestratorTests(unittest.TestCase):
 
     def test_user_test_fail_marks_changes_requested(self):
         from project_ops_agent.models import Comment
+        from project_ops_agent.templates import USER_TEST_MARKER
 
-        client = FakeGitLab(comments=[Comment(id=1, body="@agent test-fail still broken")])
+        client = FakeGitLab(
+            comments=[
+                Comment(id=1, body=f"{USER_TEST_MARKER}\n## 사용자 테스트 필요"),
+                Comment(id=2, body="@agent test-fail still broken"),
+            ]
+        )
         issue = Issue(iid=4, title="Ready", description="Done", labels=["agent:needs-user-test"])
         result = Orchestrator(client, profile()).process_issue(issue)
         self.assertEqual("changes-requested", result.status)
         self.assertIn("agent:changes-requested", client.label_updates[-1])
+
+    def test_user_test_result_without_request_marker_is_ignored(self):
+        from project_ops_agent.models import Comment
+
+        client = FakeGitLab(comments=[Comment(id=1, body="@agent test-pass", author_username="user")])
+        issue = Issue(iid=13, title="Ready", description="Done", labels=["agent:needs-user-test"])
+        result = Orchestrator(client, profile()).process_issue(issue)
+        self.assertEqual("needs-user-test", result.status)
+        self.assertEqual([], client.label_updates)
 
     def test_agent_user_test_request_does_not_mark_done(self):
         from project_ops_agent.models import Comment
