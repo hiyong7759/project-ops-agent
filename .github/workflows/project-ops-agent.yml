@@ -19,11 +19,13 @@ permissions:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: 저장소 체크아웃
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Python 설정
         uses: actions/setup-python@v5
@@ -38,9 +40,16 @@ jobs:
       - name: 에이전트 설치
         run: python -m pip install -e .
 
+      - name: Codex CLI 확인
+        if: ${{ contains(github.event.inputs.config_path || 'configs/projects/github.sample.project.toml', 'github.codex.project.toml') }}
+        run: |
+          command -v codex
+          codex --version
+
       - name: 대기 중인 이슈 스캔
         run: python -m project_ops_agent.cli scan --config "$CONFIG_PATH"
         env:
           CONFIG_PATH: ${{ github.event.inputs.config_path || 'configs/projects/github.sample.project.toml' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODEX_FIX_COMMAND: codex
           PYTHONDONTWRITEBYTECODE: "1"

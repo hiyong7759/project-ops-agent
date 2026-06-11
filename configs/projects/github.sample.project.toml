@@ -2,6 +2,7 @@
 key = "personal-demo"
 name = "Personal GitHub Demo"
 platform = "github"
+policy_file = "AGENTS.md"
 
 [github]
 owner = "hiyong7759"

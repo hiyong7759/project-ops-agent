@@ -15,7 +15,7 @@ from .templates import render_mr_report
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="gitlab-project-ops-agent")
+    parser = argparse.ArgumentParser(prog="project-ops-agent")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     scan = subparsers.add_parser("scan", help="Process issues labeled agent:queued")

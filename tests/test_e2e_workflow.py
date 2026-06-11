@@ -23,6 +23,21 @@ class InMemoryIssuePlatform:
         self.comments = []
         self.next_comment_id = 1
         self.created_mrs = []
+        self.labels = [
+            "agent:queued",
+            "agent:analyzing",
+            "agent:needs-info",
+            "agent:fixing",
+            "agent:verifying",
+            "agent:needs-user-test",
+            "agent:changes-requested",
+            "agent:done",
+            "agent:blocked",
+            "agent:mr-created",
+            "risk:low",
+            "risk:medium",
+            "risk:high",
+        ]
 
     def list_issues_by_label(self, label, limit=20):
         if label in self.issue.labels and self.issue.state in {"opened", "open"}:
@@ -31,6 +46,13 @@ class InMemoryIssuePlatform:
 
     def get_issue_comments(self, iid):
         return list(self.comments)
+
+    def list_labels(self):
+        return list(self.labels)
+
+    def create_label(self, name, color="ededed", description=""):
+        if name not in self.labels:
+            self.labels.append(name)
 
     def post_issue_comment(self, iid, body):
         self.comments.append(Comment(id=self.next_comment_id, body=body, author_username="agent"))

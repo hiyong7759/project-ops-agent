@@ -1,16 +1,22 @@
 from __future__ import annotations
 
-from .clarification import has_marker, latest_agent_decision, latest_user_test_result
+from .clarification import (
+    has_marker,
+    latest_agent_decision,
+    latest_agent_decision_after_marker,
+    latest_user_test_result_after_marker,
+)
 from .command_runner import CommandRunner
 from .fix_provider import ExternalFixProvider
 from .git_runner import GitRunner
 from .issue_analyzer import IssueAnalyzer
 from .models import Issue, ProcessResult, ProjectProfile
 from .policy import PolicyEngine
-from .state import with_agent_state, with_risk_label
+from .state import REQUIRED_LABELS, with_agent_state, with_risk_label
 from .state import PROCESSABLE_STATES, current_agent_state
 from .templates import (
     ANALYSIS_MARKER,
+    BLOCKED_MARKER,
     MR_COMMENT_MARKER,
     NEEDS_INFO_MARKER,
     render_blocked,
@@ -18,6 +24,8 @@ from .templates import (
     render_mr_issue_comment,
     render_mr_report,
     render_needs_info,
+    render_user_test_fail_confirmation,
+    render_user_test_pass_confirmation,
     render_user_test_request,
     USER_TEST_MARKER,
 )
@@ -43,6 +51,7 @@ class Orchestrator:
         self.fix_provider = fix_provider or ExternalFixProvider(profile)
 
     def process_queued(self, limit: int = 20) -> list[ProcessResult]:
+        self._ensure_labels()
         seen: set[int] = set()
         issues: list[Issue] = []
         for label in PROCESSABLE_STATES:
@@ -52,6 +61,23 @@ class Orchestrator:
                     issues.append(issue)
         return [self.process_issue(issue) for issue in issues[:limit]]
 
+    def _ensure_labels(self) -> None:
+        if not hasattr(self.gitlab, "list_labels") or not hasattr(self.gitlab, "create_label"):
+            return
+
+        try:
+            existing = {label for label in self.gitlab.list_labels()}
+        except Exception as exc:
+            raise RuntimeError(f"라벨 조회 실패: {exc}") from exc
+
+        for label in REQUIRED_LABELS:
+            if label not in existing:
+                try:
+                    self.gitlab.create_label(label)
+                    existing.add(label)
+                except Exception as exc:
+                    raise RuntimeError(f"필수 label 자동 생성 실패: {label}. {exc}") from exc
+
     def process_issue(self, issue: Issue) -> ProcessResult:
         comments = self.gitlab.get_issue_comments(issue.iid)
         state = current_agent_state(issue.labels)
@@ -59,6 +85,19 @@ class Orchestrator:
             return self._process_user_test(issue, comments)
 
         decision = latest_agent_decision(comments)
+        if state == "agent:needs-info":
+            decision = latest_agent_decision_after_marker(comments, NEEDS_INFO_MARKER)
+            if not decision:
+                return ProcessResult(
+                    "needs-info",
+                    "추가 정보 요청 이후 사용자 방향 결정을 기다리는 중입니다.",
+                    issue.iid,
+                )
+
+        if state == "agent:blocked":
+            decision = latest_agent_decision_after_marker(comments, BLOCKED_MARKER)
+            if not decision:
+                return ProcessResult("blocked", "중단 상태입니다. 이슈 댓글에 `@agent proceed` 또는 `@agent A`를 남기면 재시도합니다.", issue.iid)
 
         self._set_labels(issue, "agent:analyzing")
         analysis = self.analyzer.analyze(issue, comments, decision=decision)
@@ -100,7 +139,7 @@ class Orchestrator:
 
             fix_result = self.fix_provider.apply(workspace, issue, analysis, comments)
             if not fix_result.success:
-                return self._block(issue, fix_result.summary or "Fix command failed.")
+                return self._block(issue, fix_result.summary or "수정 명령이 실패했습니다.")
 
             changed_files = self.git_runner.changed_files(workspace)
             changed_files = changed_files or fix_result.files_changed
@@ -134,27 +173,30 @@ class Orchestrator:
             if not has_marker(comments, MR_COMMENT_MARKER):
                 self.gitlab.post_issue_comment(issue.iid, render_mr_issue_comment(mr))
             if not has_marker(comments, USER_TEST_MARKER):
-                self.gitlab.post_issue_comment(issue.iid, render_user_test_request(mr))
+                self.gitlab.post_issue_comment(
+                    issue.iid,
+                    render_user_test_request(mr, analysis, changed_files, [*install_results, *verification]),
+                )
             self._set_labels(issue, "agent:needs-user-test")
             return ProcessResult("needs-user-test", "MR/PR을 생성했고 사용자 테스트를 기다리는 중입니다.", issue.iid, mr_url=mr.web_url)
         except Exception as exc:
             return self._block(issue, str(exc))
 
     def _process_user_test(self, issue: Issue, comments) -> ProcessResult:
-        result, reason = latest_user_test_result(comments)
-        if result == "pass":
-            self.gitlab.post_issue_comment(
+        if not has_marker(comments, USER_TEST_MARKER):
+            return ProcessResult(
+                "needs-user-test",
+                "사용자 테스트 안내 댓글이 없어 테스트 결과를 처리하지 않습니다.",
                 issue.iid,
-                "## 사용자 테스트 통과 확인\n\n이슈 댓글에서 `@agent test-pass`가 확인되었습니다.",
             )
+        result, reason = latest_user_test_result_after_marker(comments, USER_TEST_MARKER)
+        if result == "pass":
+            self.gitlab.post_issue_comment(issue.iid, render_user_test_pass_confirmation())
             self._set_labels(issue, "agent:done")
             return ProcessResult("done", "사용자 테스트가 통과했습니다.", issue.iid)
         if result == "fail":
             message = reason or "상세 사유 없이 사용자 테스트 실패가 기록되었습니다."
-            self.gitlab.post_issue_comment(
-                issue.iid,
-                f"## 변경 요청됨\n\n사용자 테스트 실패가 기록되었습니다: {message}",
-            )
+            self.gitlab.post_issue_comment(issue.iid, render_user_test_fail_confirmation(message))
             self._set_labels(issue, "agent:changes-requested")
             return ProcessResult("changes-requested", message, issue.iid)
         return ProcessResult("needs-user-test", "`@agent test-pass` 또는 `@agent test-fail` 댓글을 기다리는 중입니다.", issue.iid)

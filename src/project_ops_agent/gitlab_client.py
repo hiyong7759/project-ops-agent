@@ -38,11 +38,29 @@ class GitLabClient:
         )
         return [Comment.from_gitlab(item) for item in payload]
 
+    def list_labels(self) -> list[str]:
+        payload = self._request("GET", "/labels", query={"per_page": "100"})
+        return [str(item.get("name")) for item in payload or [] if item.get("name")]
+
     def post_issue_comment(self, iid: int, body: str) -> None:
         self._request("POST", f"/issues/{iid}/notes", data={"body": body})
 
     def update_issue_labels(self, iid: int, labels: list[str]) -> None:
         self._request("PUT", f"/issues/{iid}", data={"labels": ",".join(labels)})
+
+    def create_label(
+        self,
+        name: str,
+        color: str = "#428bca",
+        description: str = "",
+    ) -> None:
+        data = {
+            "name": name,
+            "color": color,
+        }
+        if description:
+            data["description"] = description
+        self._request("POST", "/labels", data=data)
 
     def create_merge_request(
         self,
@@ -100,4 +118,3 @@ class GitLabClient:
         if not text:
             return None
         return json.loads(text)
-

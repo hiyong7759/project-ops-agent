@@ -76,6 +76,6 @@ def _parse_fix_result(stdout: str, stderr: str) -> FixResult:
         summary=str(payload.get("summary") or ""),
         files_changed=[str(item) for item in payload.get("files_changed") or []],
         commit_message=str(payload.get("commit_message") or ""),
-        stdout=stdout,
-        stderr=stderr,
+        stdout=str(payload.get("stdout") or stdout),
+        stderr=str(payload.get("stderr") or stderr),
     )

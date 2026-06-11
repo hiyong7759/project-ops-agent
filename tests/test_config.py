@@ -19,12 +19,22 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual("hiyong7759", profile.github.owner)
         self.assertEqual("project-ops-agent", profile.github.repo)
         self.assertEqual("https://github.com/hiyong7759/project-ops-agent.git", profile.repo_http_url)
+        self.assertTrue(profile.policy_file.endswith("AGENTS.md"))
         self.assertTrue(profile.workspace.use_current_checkout)
+        self.assertIn(".agent-demo/**", profile.policy.forbidden_paths)
 
     def test_load_github_demo_profile(self):
         profile = load_project_profile(Path("configs/projects/github.demo.project.toml"))
         self.assertEqual("github", profile.platform)
         self.assertEqual("python scripts/demo_fix_command.py", profile.fix.command)
+        self.assertTrue(profile.policy_file.endswith("AGENTS.md"))
+        self.assertTrue(profile.workspace.use_current_checkout)
+
+    def test_load_github_codex_profile(self):
+        profile = load_project_profile(Path("configs/projects/github.codex.project.toml"))
+        self.assertEqual("github", profile.platform)
+        self.assertEqual("python scripts/codex_fix_command.py", profile.fix.command)
+        self.assertTrue(profile.policy_file.endswith("AGENTS.md"))
         self.assertTrue(profile.workspace.use_current_checkout)
 
 
