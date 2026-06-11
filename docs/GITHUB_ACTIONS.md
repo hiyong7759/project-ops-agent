@@ -12,6 +12,67 @@
 
 전체 개념은 repository root의 `README.md`, 문서 읽는 순서는 `docs/README.md`, 운영 label 규칙은 `docs/OPERATING_RULES.md`를 함께 참고합니다.
 
+## 실행 전 반드시 준비할 것
+
+이 단계는 PR이 안 올라왔을 때 먼저 확인하는 항목입니다.
+
+### 1) 라벨 준비
+
+에이전트는 scan 시작 시점에 누락된 `agent:*`, `risk:*` 라벨을 자동 생성합니다.
+
+- `agent:queued`만 수동으로 준비하면 되고, 나머지는 자동 생성됩니다.
+- `agent:queued`는 수동으로 붙일 수 있어야 합니다.
+
+필요 시 GitHub에서 `agent:queued`만 먼저 만들고 시작하세요.
+
+1. 저장소에서 **Issues**
+2. 오른쪽 상단 **Labels**
+3. **New label**
+
+이름: `agent:queued`
+
+GitLab이 대상이면 동일하게 **Issues** 화면에서 라벨을 생성하면 됩니다.
+
+### 2) 토큰/권한 준비
+
+이 저장소 MVP는 기본적으로 `GITHUB_TOKEN`을 사용합니다.
+
+1. workflow 파일에서 `permissions`를 `contents: write`, `issues: write`, `pull-requests: write`로 유지합니다.  
+2. repository 설정에서 **Settings > Actions > General > Workflow permissions**를 열고  
+   - **Read and write permissions**
+   - **Allow GitHub Actions to create and approve pull requests**
+   를 ON 합니다.
+
+cross-repo(다른 저장소), 조직 정책이 엄격한 환경에서는 PAT을 써야 합니다.
+
+1. GitHub token 생성: **Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token**
+2. scope: `contents`, `issues`, `pull-requests` 쓰기 권한 최소값으로 제한
+3. repo secret 등록: `Settings > Secrets and variables > Actions > New repository secret`에서 예: `GH_TOKEN` 생성
+4. workflow가 PAT을 쓰도록 `env.GITHUB_TOKEN` 값을 `${{ secrets.GH_TOKEN }}`로 변경
+
+### 3) `fix.command`와 검증 명령 연결
+
+`project` 설정은 `configs/projects/*.project.toml`에서 관리합니다.
+
+- `[commands]`는 install/lint/test를 정의합니다.
+- `[fix]`의 `command`는 실제 코드를 수정할 외부 명령입니다.
+- `fix.command`는 issue context JSON을 입력으로 받아 JSON 결과(`success`, `summary`, `files_changed`, `commit_message`)를 stdout으로 반환해야 합니다.
+
+예시:
+
+```toml
+[commands]
+install = "npm ci"
+lint = "npm run lint"
+test = "npm test"
+
+[fix]
+command = "python scripts/fix_for_project.py"
+timeout_seconds = 1800
+```
+
+`fix.command`가 없거나 비어 있으면 실제 코드 변경은 수행되지 않고 흐름이 중단됩니다.
+
 ## 검증 범위
 
 이 저장소는 Project Ops Agent 자체를 검증하는 MVP입니다. 화면 기능이나 실제 서비스 API가 없으므로 사용자가 확인할 수 있는 범위는 다음입니다.
@@ -59,12 +120,17 @@ workflow는 `workflow_dispatch`를 지원합니다. 10분 주기 실행용 sched
 | --- | --- |
 | `configs/projects/github.sample.project.toml` | 안전한 기본 검증. `fix.command`가 비어 있어 코드 변경 전 중단 |
 | `configs/projects/github.demo.project.toml` | demo `fix.command`로 PR 생성과 사용자 테스트 게이트까지 검증 |
+| `configs/projects/github.codex.project.toml` | Codex CLI wrapper로 실제 소스 수정을 시도 |
 
 workflow가 실행하는 명령:
 
 ```bash
 python -m project_ops_agent.cli scan --config "$CONFIG_PATH"
 ```
+
+`github.codex.project.toml`을 선택하면 workflow가 Codex CLI를 설치하고 `scripts/codex_fix_command.py`를 `fix.command`로 실행합니다. 이 모드는 runner에서 Codex CLI 인증이 이미 준비되어 있어야 동작합니다.
+
+보안상 이 모드는 신뢰하는 private repo와 runner에서 먼저 검증하세요. 최종 사내 운영에서는 GitLab Runner나 self-hosted runner에 Codex CLI 로그인 상태와 필요한 설정을 runner 내부에 준비하는 방식을 기준으로 합니다.
 
 필요한 권한:
 
@@ -93,6 +159,9 @@ GitHub POST /pulls failed: HTTP Error 403: Forbidden
 기본 GitHub profile은 현재 checkout을 그대로 사용합니다.
 
 ```toml
+[project]
+policy_file = "AGENTS.md"
+
 [github]
 owner = "hiyong7759"
 repo = "project-ops-agent"
@@ -101,6 +170,8 @@ repo_http_url = "https://github.com/hiyong7759/project-ops-agent.git"
 [workspace]
 use_current_checkout = true
 ```
+
+`policy_file`은 Markdown/TOML/JSON 정책 파일 경로입니다. `AGENTS.md`처럼 config 파일 옆에 없는 파일명은 상위 디렉터리에서 찾아 저장소 루트의 `AGENTS.md`를 사용할 수 있습니다.
 
 이 설정은 `actions/checkout`이 받아온 저장소에서 바로 branch 생성, commit, push를 수행하게 합니다. 별도 clone을 피할 수 있고 private repo credential 문제도 줄어듭니다.
 
@@ -145,7 +216,7 @@ workflow는 checkout 시 전체 이력을 가져오고, 에이전트는 `origin/
 10. `config_path`를 선택합니다.
 11. **Run workflow**를 다시 눌러 실행합니다.
 
-`agent:queued` label이 보이지 않으면 workflow를 먼저 실행하지 말고, 이 문서의 `필요한 label` 섹션을 보거나 운영자에게 label 생성을 요청합니다.
+`agent:queued` label이 보이지 않으면 먼저 `agent:queued`부터 준비한 뒤 workflow를 실행하세요. 나머지 라벨은 에이전트가 자동 생성합니다.
 
 처음 검증하는 조직원은 아래 config를 사용합니다.
 
@@ -185,9 +256,9 @@ PR이 생성되기 전에 미리 남긴 `@agent test-pass`는 완료 신호로 �
 
 ## 필요한 label
 
-workflow를 실행하기 전에 저장소에 다음 label이 있어야 합니다.
+workflow를 실행하기 전에 저장소에 반드시 있어야 하는 것은 `agent:queued`입니다.
 
-GitHub에서 label은 **Issues > Labels > New label**로 만들 수 있습니다. 처음 검증할 때 사용자가 직접 붙여야 하는 label은 보통 `agent:queued` 하나입니다. 나머지 `agent:*`, `risk:*` label은 에이전트가 상태를 기록할 때 사용합니다.
+GitHub에서 `agent:queued` label은 **Issues > Labels > New label**에서 만듭니다. 나머지 `agent:*`, `risk:*`는 권한이 있으면 에이전트가 자동 생성합니다.
 
 | label | 사용자 관점의 의미 |
 | --- | --- |

@@ -14,11 +14,14 @@ from project_ops_agent.models import (
     WorkspaceSettings,
 )
 from project_ops_agent.orchestrator import Orchestrator
+from project_ops_agent.state import REQUIRED_LABELS
 
 
 class FakeGitLab:
-    def __init__(self, comments=None):
+    def __init__(self, comments=None, labels=None):
         self.comments = comments or []
+        self.labels = list(labels if labels is not None else REQUIRED_LABELS)
+        self.created_labels = []
         self.label_updates = []
         self.posted_comments = []
         self.created_mrs = []
@@ -28,6 +31,13 @@ class FakeGitLab:
 
     def get_issue_comments(self, iid):
         return self.comments
+
+    def list_labels(self):
+        return list(self.labels)
+
+    def create_label(self, name, color="ededed", description=""):
+        self.labels.append(name)
+        self.created_labels.append(name)
 
     def post_issue_comment(self, iid, body):
         self.posted_comments.append(body)
@@ -258,6 +268,29 @@ class OrchestratorTests(unittest.TestCase):
         result = Orchestrator(client, profile()).process_issue(issue)
         self.assertEqual("needs-user-test", result.status)
         self.assertEqual([], client.label_updates)
+
+    def test_scan_automatically_creates_missing_labels(self):
+        client = FakeGitLab(
+            labels=["agent:queued"],
+            comments=[],
+        )
+        issue = Issue(iid=20, title="라벨 부트스트랩 확인", description="테스트", labels=["agent:queued"])
+
+        def list_issues(label, limit=20):
+            return [issue] if label == "agent:queued" else []
+
+        client.list_issues_by_label = list_issues
+        result = Orchestrator(
+            client,
+            profile(),
+            git_runner=FakeGitRunner(),
+            command_runner=FakeCommandRunner(),
+            fix_provider=FakeFixProvider(),
+        ).process_queued(limit=10)
+
+        self.assertEqual("needs-info", result[0].status)
+        for expected_label in [label for label in REQUIRED_LABELS if label != "agent:queued"]:
+            self.assertIn(expected_label, client.created_labels)
 
     def test_user_test_result_before_request_does_not_mark_done(self):
         from project_ops_agent.models import Comment

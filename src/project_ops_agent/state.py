@@ -21,6 +21,7 @@ PROCESSABLE_STATES = (
 )
 
 RISK_LABELS = ("risk:low", "risk:medium", "risk:high")
+REQUIRED_LABELS = AGENT_STATES + RISK_LABELS
 
 
 def current_agent_state(labels: list[str]) -> str:

@@ -23,7 +23,7 @@ lint = ""
 test = "python -m unittest discover -s tests"
 
 [fix]
-command = "python scripts/demo_fix_command.py"
+command = "python scripts/codex_fix_command.py"
 timeout_seconds = 1800
 
 [policy]

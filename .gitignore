@@ -12,3 +12,4 @@ workspaces/
 .env
 .env.*
 !.env.example
+.runner/

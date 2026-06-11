@@ -14,6 +14,16 @@
 
 일반 사용자는 처음부터 `docs/ARCHITECTURE.md`나 `docs/MVP_VALIDATION.md`를 읽지 않아도 됩니다.
 
+### 첫 10분 실행 순서
+
+1. `README.md`에서 이슈를 하나 작성하고 `agent:queued`를 붙인다.
+2. `docs/GITHUB_ACTIONS.md` 기준으로 Workflow를 수동 실행한다.
+3. 분석 댓글이 오면 필요 답변을 남기고 재실행한다.
+4. PR이 생성되면 PR 본문을 보고 승인/반려 사유를 이슈 댓글에 남긴다.
+5. `agent:needs-user-test`에서 `@agent test-pass` 또는 `@agent test-fail`로 마무리한다.
+
+처음 확인이 실패했을 때는 `README.md`의 `지금 바로 확인할 점검표 (PR 안 올라올 때)`부터 먼저 봅니다.
+
 ### 처음 이해할 때
 
 1. `README.md`

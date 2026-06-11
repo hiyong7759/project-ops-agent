@@ -37,9 +37,38 @@ Project Ops Agent는 GitLab 또는 GitHub 이슈를 기준으로 운영 코드 �
 
 조직의 운영자 또는 도입 담당자가 미리 준비해야 하는 것은 다음입니다.
 
-- 대상 저장소에 `agent:queued` 같은 `agent:*` label과 `risk:*` label을 만들어 둡니다.
-- 에이전트가 실행될 runner와 token을 준비합니다.
-- 대상 프로젝트에 맞는 `fix.command`와 검증 명령을 설정합니다.
+아래는 "어디서/어떻게"까지 적은 준비 체크리스트입니다.
+
+1. 라벨 준비(필수)
+   - 에이전트는 scan 시작 시점에 `agent:*`, `risk:*` 라벨을 API로 자동 생성할 수 있는 상태여야 합니다.
+   - `agent:queued`는 사용자가 직접 붙일 수 있어야 하므로 시작 전 한 번 준비해 둡니다.
+   - 필요 라벨: `agent:queued`, `agent:analyzing`, `agent:needs-info`, `agent:fixing`, `agent:verifying`, `agent:needs-user-test`, `agent:changes-requested`, `agent:done`, `agent:blocked`, `agent:mr-created`, `risk:low`, `risk:medium`, `risk:high`
+
+2. 실행 위치(runner) 준비
+   - 이 저장소의 개인 GitHub 검증은 GitHub-hosted runner에서 동작합니다(추가 runner 설정 불필요).
+   - 사내 GitLab 등을 붙일 때는 API/클론이 되는 위치에 runner가 있어야 합니다(예: self-hosted runner, VPN 연결 내부 서버, WSL).
+
+3. token 준비
+   - 이 저장소 GitHub workflow 기본은 `GITHUB_TOKEN`을 사용합니다. 별도 secret 없이도 실행 가능합니다.
+   - 조직 정책상 cross-repo 작업이 필요하면 토큰을 발급해 secret에 넣고, workflow의 `env.GITHUB_TOKEN`을 해당 secret으로 바꿉니다.
+     - GitHub: repo 또는 org Settings → **Secrets and variables** → **Actions** → `GH_TOKEN`
+     - GitLab: 대상 project Settings → **Access Tokens** → `GITLAB_TOKEN`
+   - 로컬에서 실행할 때는 `export GITHUB_TOKEN=...` 또는 `export GITLAB_TOKEN=...`로 넘겨줍니다.
+
+4. 대상 프로젝트별 `fix.command`/검증 명령 설정
+   - `configs/projects/*.project.toml`의 `[fix]`와 `[commands]`를 수정해 연결합니다.
+   - `fix.command`는 issue context JSON을 입력받아 결과 JSON(`success`, `summary`, `files_changed`, `commit_message`)을 반환해야 합니다.
+   - 예시:
+
+   ```toml
+   [commands]
+   install = "npm ci"
+   lint = "npm run lint"
+   test = "npm test"
+
+   [fix]
+   command = "python scripts/my_fix.py"
+   ```
 
 일반 사용자는 token, runner, `fix.command`를 직접 알 필요가 없습니다. Issue 작성, 방향 결정, PR/MR 확인, 테스트 결과 댓글만 책임집니다.
 
@@ -116,7 +145,7 @@ Body:
 
 4. Issue 오른쪽의 **Labels**에서 `agent:queued`를 선택합니다.
 
-이 label은 “에이전트가 이 Issue를 처리 대상으로 가져가도 된다”는 표시입니다. 저장소에 `agent:queued` label이 없다면 운영자에게 label 생성을 요청합니다. GitHub에서는 **Issues > Labels > New label**에서 만들 수 있습니다.
+이 label은 “에이전트가 이 Issue를 처리 대상으로 가져가도 된다”는 표시입니다. 저장소에 `agent:queued` label이 없다면 운영자에게 요청해 준비해 주세요. 나머지 `agent:*`, `risk:*` 라벨은 에이전트가 첫 실행에서 자동 생성합니다.
 
 5. Issue를 저장합니다.
 6. GitHub Actions의 **Project Ops Agent MVP** workflow를 실행합니다.
@@ -205,6 +234,22 @@ PR 생성 전에 미리 남긴 `@agent test-pass`는 완료 신호로 사용하�
 - PR 생성 후 이슈가 사용자 테스트 대기 상태가 되는가
 - 이슈 댓글의 `@agent test-pass`가 완료 상태로 반영되는가
 
+## 지금 바로 확인할 점검표 (PR 안 올라올 때)
+
+PR이 안 보이면 아래 순서로 먼저 확인합니다.
+
+1. Issues에서 처리 이슈가 `agent:queued`로 시작했는지 확인합니다.
+2. Actions 실행이 완료되었는지 확인하고, 이슈 댓글에 다음 중 하나라도 남았는지 봅니다.
+   - `에이전트가 분석 중`
+   - `추가 정보가 필요함`
+   - `사용자 테스트 안내`
+   - `에이전트 중단`
+3. 이슈에 `agent:needs-info`가 붙어 있으면 `@agent A` 또는 `@agent 방향: <내용>`으로 먼저 답변합니다.
+4. 그 외에 오류가 보이면 Actions 로그를 먼저 확인해 `403`, `permission`, `push`/`PR` 오류를 찾습니다.
+5. 여전히 PR이 없다면 `Settings > Actions > General`에서 `Read and write permissions`와 `Allow GitHub Actions to create and approve pull requests`가 켜져 있는지 확인합니다.
+
+위 4~5단계에서 해결이 되면 workflow를 다시 실행합니다. 이슈 상태가 `agent:needs-user-test`로 바뀌고 PR이 생성되어야 다음 단계입니다.
+
 ## 문서 지도
 
 처음에는 README만 읽어도 전체 흐름을 이해할 수 있어야 합니다. 세부 상황에서는 아래 문서를 봅니다.
@@ -244,6 +289,12 @@ PR 생성까지 확인하려면 demo fix config를 사용합니다.
 configs/projects/github.demo.project.toml
 ```
 
+Codex CLI로 실제 소스 수정을 시도하려면 codex fix config를 사용합니다.
+
+```text
+configs/projects/github.codex.project.toml
+```
+
 자세한 절차는 [docs/GITHUB_ACTIONS.md](docs/GITHUB_ACTIONS.md)를 참고하세요.
 
 ## demo fix.command란?
@@ -252,7 +303,9 @@ configs/projects/github.demo.project.toml
 
 `scripts/demo_fix_command.py`는 실무 버그를 고치는 도구가 아닙니다. GitHub Actions에서 branch push, commit, PR 생성, 사용자 테스트 대기 흐름을 검증하기 위해 `.agent-demo/` 아래에 작은 검증용 파일을 만드는 데모 명령입니다.
 
-실제 프로젝트에서는 이 자리에 프로젝트 전용 수정 도구를 연결합니다.
+`scripts/codex_fix_command.py`는 runner에 설치된 `codex exec`를 호출해 실제 소스 수정을 시도하는 wrapper입니다. GitHub-hosted runner와 사내 GitLab Runner 모두 같은 방식으로 쓸 수 있지만, runner에 Codex CLI와 인증 정보가 준비되어 있어야 합니다.
+
+실제 프로젝트에서는 이 자리에 프로젝트 전용 수정 도구, Codex CLI wrapper, 사내 LLM 도구를 연결합니다.
 
 ## 다른 프로젝트에 붙이는 방법
 

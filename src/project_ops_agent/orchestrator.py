@@ -12,7 +12,7 @@ from .git_runner import GitRunner
 from .issue_analyzer import IssueAnalyzer
 from .models import Issue, ProcessResult, ProjectProfile
 from .policy import PolicyEngine
-from .state import with_agent_state, with_risk_label
+from .state import REQUIRED_LABELS, with_agent_state, with_risk_label
 from .state import PROCESSABLE_STATES, current_agent_state
 from .templates import (
     ANALYSIS_MARKER,
@@ -51,6 +51,7 @@ class Orchestrator:
         self.fix_provider = fix_provider or ExternalFixProvider(profile)
 
     def process_queued(self, limit: int = 20) -> list[ProcessResult]:
+        self._ensure_labels()
         seen: set[int] = set()
         issues: list[Issue] = []
         for label in PROCESSABLE_STATES:
@@ -59,6 +60,23 @@ class Orchestrator:
                     seen.add(issue.iid)
                     issues.append(issue)
         return [self.process_issue(issue) for issue in issues[:limit]]
+
+    def _ensure_labels(self) -> None:
+        if not hasattr(self.gitlab, "list_labels") or not hasattr(self.gitlab, "create_label"):
+            return
+
+        try:
+            existing = {label for label in self.gitlab.list_labels()}
+        except Exception as exc:
+            raise RuntimeError(f"라벨 조회 실패: {exc}") from exc
+
+        for label in REQUIRED_LABELS:
+            if label not in existing:
+                try:
+                    self.gitlab.create_label(label)
+                    existing.add(label)
+                except Exception as exc:
+                    raise RuntimeError(f"필수 label 자동 생성 실패: {label}. {exc}") from exc
 
     def process_issue(self, issue: Issue) -> ProcessResult:
         comments = self.gitlab.get_issue_comments(issue.iid)

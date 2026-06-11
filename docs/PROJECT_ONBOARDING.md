@@ -41,26 +41,50 @@
 
 ## 도입 담당자 준비 목록
 
-| 준비 항목 | 확인할 내용 |
-| --- | --- |
-| Issue 플랫폼 | GitHub Issue 또는 GitLab Issue 중 하나를 source of truth로 정했는가 |
-| label | `agent:*`, `risk:*` label을 대상 repo에 만들었는가 |
-| 실행 위치 | runner가 이슈 플랫폼 API와 repo clone/push에 접근할 수 있는가 |
-| token | Issue comment/label, branch push, PR/MR 생성 권한이 있는가 |
-| project profile | 대상 repo URL, default branch, commands, policy가 맞는가 |
-| `fix.command` | 실제 수정 도구가 표준 JSON 입력/출력 계약을 지키는가 |
-| 검증 명령 | install/lint/test 명령이 runner에서 실행되는가 |
-| 첫 검증 Issue | 모호한 Issue로 `agent:needs-info`까지 검증했는가 |
-| PR/MR 검증 | demo 또는 안전한 수정으로 `agent:needs-user-test`까지 검증했는가 |
+도입 담당자는 아래만 완료하면 바로 검증을 시작할 수 있습니다.
+
+1. 라벨 준비  
+   - 에이전트는 `agent:*`, `risk:*` 라벨을 실행 시 자동으로 생성하도록 설계되었습니다.
+   - 수동으로 꼭 필요할 라벨은 `agent:queued` 하나입니다. 운영자 또는 요청자가 준비해 두면 됩니다.
+   - 나머지 라벨은 처음 scan에서 권한이 있으면 자동 생성됩니다.
+
+2. 실행 위치(runner) 준비  
+   - GitHub 프로젝트: `Actions` 실행이면 GitHub-hosted runner 사용 가능  
+   - 사내 GitLab/사내망 repo: 사내 GitLab API와 Git clone이 가능한 곳(예: GitLab Runner, 사내 self-hosted runner, VPN WSL)에서 실행
+
+3. token 준비  
+   - GitHub: 기본 `GITHUB_TOKEN` 또는 fine-grained PAT 생성 후 secret 등록  
+   - GitLab: project access token 또는 personal access token 발급 (`api`, `read_repository`, `write_repository` 권한)
+
+4. project profile 연결  
+   - `configs/projects/*.project.toml` 생성/수정  
+   - `[project]`, `[github]/[gitlab]`, `[commands]`, `[fix]`, `[workspace]` 값이 맞는지 점검
+
+5. 정책 파일 연결  
+   - `policy_file = "AGENTS.md"`처럼 대상 프로젝트의 루트 정책 파일을 지정
+
+6. `fix.command` 연결  
+   - 프로젝트 코드에 맞는 수정기를 `[fix]`의 `command`에 연결
+   - 검증 가능한 데모부터 시작하고, 이후 실제 도구로 교체
+   - `fix.command`는 issue context JSON 입력/JSON 결과 출력 계약을 지켜야 합니다.
+
+7. 검증 명령 점검  
+   - `install`, `lint`, `test`가 runner에서 실제로 실행 가능한지 먼저 확인
+
+8. 최초 동작 확인  
+   - 모호한 Issue로 `agent:needs-info`  
+   - `@agent A` 또는 `@agent 방향` 반영 후 `agent:needs-user-test` 확인
 
 ## 적용 절차
 
 1. 대상 프로젝트를 선택합니다.
 2. GitLab 또는 GitHub 중 사용할 이슈 플랫폼을 정합니다.
-3. 대상 repo에 `agent:*`, `risk:*` label을 생성합니다.
-4. project profile TOML을 작성합니다.
-5. token을 환경 변수로 제공합니다.
-6. 실행 위치를 정합니다.
+3. 대상 repo에 `agent:queued` 라벨을 준비합니다. (위치: GitHub `Issues > Labels`, GitLab `Issues > Labels`)
+4. project profile TOML을 작성합니다. (`configs/projects/<id>.project.toml`)
+5. token을 환경 변수로 제공합니다.  
+   - GitHub runner: 기본은 `GITHUB_TOKEN`, PAT 사용 시 workflow에서 `GH_TOKEN`을 `GITHUB_TOKEN`으로 주입  
+   - GitLab runner: `GITLAB_TOKEN`
+6. 실행 위치(runner)를 정합니다.
 7. 안전한 `fix.command`를 연결합니다.
 8. `scan`을 수동 또는 주기 실행합니다.
 9. 첫 검증은 모호한 이슈로 사용자 방향 결정 대기 상태(`agent:needs-info`)까지 확인합니다.
@@ -80,6 +104,73 @@
 | 결과 판단 (`agent:done` 또는 `agent:changes-requested`) | 사용자가 통과 또는 실패를 Issue에 남김 | 사용자 테스트 안내 이후 `@agent test-pass` 또는 `@agent test-fail <사유>` 작성 | label을 완료 또는 변경 요청으로 이동 |
 
 merge는 자동화하지 않습니다. 운영자가 기존 조직 절차에 따라 최종 반영 여부를 결정합니다.
+
+## 실제 개발이 실행되는 위치
+
+Project Ops Agent가 직접 소스 코드를 임의로 작성하는 것이 아니라, runner 안에서 대상 저장소를 준비한 뒤 project profile의 `fix.command`를 실행합니다.
+
+실행 순서는 다음과 같습니다.
+
+1. 에이전트가 Issue와 댓글을 읽고 분석합니다.
+2. 모호하거나 승인 판단이 필요하면 `agent:needs-info`로 멈춥니다.
+3. 진행 가능하면 `GitRunner`가 workspace를 준비합니다.
+4. `workspace.use_current_checkout = true`면 현재 checkout을 그대로 사용하고, 아니면 `workspace.root` 아래로 대상 repo를 clone/fetch합니다.
+5. 기본 branch 기준으로 `agent/...` 작업 branch를 만듭니다.
+6. `[commands].install`이 있으면 먼저 실행합니다.
+7. `[fix].command`를 workspace에서 실행합니다.
+8. `fix.command`가 파일을 수정하고 JSON 결과를 stdout으로 반환합니다.
+9. 에이전트가 변경 파일을 확인하고 금지 경로 정책을 검사합니다.
+10. `[commands].lint`, `[commands].test`를 실행합니다.
+11. 변경 사항을 commit하고 branch를 push합니다.
+12. MR/PR을 만들고, Issue를 `agent:needs-user-test`로 이동합니다.
+
+`fix.command`는 표준 입력으로 다음 context JSON을 받습니다.
+
+```json
+{
+  "issue": {
+    "iid": 123,
+    "title": "로그인 오류",
+    "description": "로그인이 안됩니다",
+    "labels": ["agent:queued"],
+    "web_url": "https://..."
+  },
+  "analysis": {},
+  "decision": "@agent A",
+  "comments": ["최근 이슈 댓글 최대 20개"],
+  "project": {
+    "key": "order-api",
+    "name": "Order API"
+  }
+}
+```
+
+`fix.command`는 stdout으로 다음 JSON을 반환해야 합니다.
+
+```json
+{
+  "success": true,
+  "summary": "로그인 실패 메시지와 테스트를 수정했습니다.",
+  "files_changed": ["src/login.py", "tests/test_login.py"],
+  "commit_message": "이슈 #123 로그인 실패 메시지 개선\n\nRefs #123"
+}
+```
+
+현재 이 저장소의 demo config는 `scripts/demo_fix_command.py`를 실행합니다. 이 명령은 실제 업무 코드를 고치지 않고 `.agent-demo/` 아래 검증용 파일만 만들어 PR 생성 경로를 확인합니다.
+
+실제 신규 개발까지 하려면 `fix.command`를 프로젝트 전용 수정 도구로 교체해야 합니다. 이 저장소에는 Codex CLI를 호출하는 `scripts/codex_fix_command.py` wrapper가 있으며, GitHub Actions 검증용 profile은 `configs/projects/github.codex.project.toml`입니다.
+
+`scripts/codex_fix_command.py`는 runner의 checkout 디렉터리에서 `codex exec --sandbox workspace-write`를 실행합니다. Codex가 파일을 수정하면 wrapper가 `git status --porcelain`으로 변경 파일을 수집하고, Project Ops Agent가 이후 commit/push/PR 생성을 맡습니다.
+
+사내 GitLab Runner에서 같은 방식을 쓰려면 runner에 다음이 준비되어야 합니다.
+
+- Python 3.12 이상
+- Git
+- 대상 GitLab repo clone/push 권한
+- GitLab API token
+- Codex CLI 또는 사내 대체 수정 도구
+- Codex CLI 로그인 상태 또는 내부 수정 도구 인증 정보
+- 대상 프로젝트의 install/lint/test 실행 환경
 
 ## GitHub 프로젝트
 
@@ -122,6 +213,7 @@ GitLab 예시:
 key = "order-api"
 name = "Order API"
 platform = "gitlab"
+policy_file = "AGENTS.md"
 
 [gitlab]
 url = "https://gitlab.company.local"
@@ -155,6 +247,7 @@ GitHub 예시:
 key = "project-ops-agent"
 name = "Project Ops Agent"
 platform = "github"
+policy_file = "AGENTS.md"
 
 [github]
 owner = "hiyong7759"
@@ -166,6 +259,9 @@ api_url = "https://api.github.com"
 [workspace]
 use_current_checkout = true
 ```
+
+`project` 섹션의 `policy_file`은 Markdown/TOML/JSON 형식의 정책 파일을 가리킵니다.  
+예시의 경우 저장소 루트 `AGENTS.md`의 `[policy]` 블록이 기본 policy 위에 병합됩니다.
 
 ## fix.command 선택
 
@@ -188,7 +284,7 @@ use_current_checkout = true
 - 필요한 테스트 파일 추가
 - 변경 요약과 commit message 반환
 
-처음에는 demo `fix.command`로 PR 생성 경로만 검증하고, 실제 운영에 들어갈 때 프로젝트 전용 명령으로 교체하는 방식이 안전합니다.
+처음에는 demo `fix.command`로 PR 생성 경로만 검증하고, 그 다음 `scripts/codex_fix_command.py`로 실제 수정 흐름을 검증합니다. 실제 운영에 들어갈 때는 프로젝트 전용 Codex prompt, 사내 LLM 도구, 또는 규칙 기반 수정기로 교체할 수 있습니다.
 
 ## 한국어 운영 원칙
 

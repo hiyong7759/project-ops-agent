@@ -40,11 +40,26 @@ class GitHubClient:
         )
         return [Comment.from_github(item) for item in payload]
 
+    def list_labels(self) -> list[str]:
+        payload = self._request("GET", "/labels", query={"per_page": "100"})
+        return [str(item.get("name")) for item in payload or [] if item.get("name")]
+
     def post_issue_comment(self, iid: int, body: str) -> None:
         self._request("POST", f"/issues/{iid}/comments", data={"body": body})
 
     def update_issue_labels(self, iid: int, labels: list[str]) -> None:
         self._request("PUT", f"/issues/{iid}/labels", data={"labels": labels})
+
+    def create_label(
+        self,
+        name: str,
+        color: str = "ededed",
+        description: str = "",
+    ) -> None:
+        data = {"name": name, "color": color.lstrip("#")}
+        if description:
+            data["description"] = description
+        self._request("POST", "/labels", data=data)
 
     def create_merge_request(
         self,

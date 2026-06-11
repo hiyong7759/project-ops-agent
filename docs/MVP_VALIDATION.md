@@ -77,7 +77,8 @@ python3 -m unittest discover -s tests
 
 GitLab 또는 GitHub 실제 프로젝트에 연결하기 전에 다음을 확인합니다.
 
-1. `docs/OPERATING_RULES.md`의 label을 생성합니다.
+1. `docs/OPERATING_RULES.md`에서 라벨 규칙을 확인하고, `agent:queued`를 준비합니다.  
+   (`agent:*`, `risk:*`는 에이전트가 첫 scan에서 자동 생성합니다.)
 2. 최소 권한 token을 준비합니다.
 3. GitLab이면 `GITLAB_TOKEN`, GitHub이면 `GITHUB_TOKEN`을 설정합니다.
 4. 처리할 이슈를 하나 만들고 에이전트 처리 대상으로 표시합니다.

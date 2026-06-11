@@ -137,6 +137,7 @@ class ProjectProfile:
     commands: CommandsSettings = field(default_factory=CommandsSettings)
     fix: FixSettings = field(default_factory=FixSettings)
     policy: PolicySettings = field(default_factory=PolicySettings)
+    policy_file: str = ""
     review: ReviewSettings = field(default_factory=ReviewSettings)
     workspace: WorkspaceSettings = field(default_factory=WorkspaceSettings)
 

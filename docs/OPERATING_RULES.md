@@ -32,7 +32,8 @@
 3. 에이전트가 질문하면 같은 Issue 댓글에 `@agent A` 또는 `@agent 방향: <내용>`으로 답합니다.
 4. PR/MR이 생기면 확인 후 같은 Issue 댓글에 `@agent test-pass` 또는 `@agent test-fail <사유>`를 남깁니다.
 
-`agent:queued` label이 보이지 않으면 사용자가 임의 이름으로 새 label을 만들지 말고 운영자에게 요청합니다. 에이전트는 정해진 label 이름을 기준으로 동작합니다.
+`agent:queued`가 보이지 않으면 새로 만들 수 있는 사람이 운영자(또는 도입 담당자)에게 요청해 먼저 준비합니다.  
+`agent:*`와 `risk:*` 라벨은 scan 시작 시 에이전트가 자동 생성하므로, 보통 운영자가 별도로 모두 만들지 않아도 됩니다.
 
 Issue에 무엇을 써야 할지 모르겠다면 repository root의 `README.md`에 있는 `Issue 작성 예시`를 그대로 복사해 시작합니다.
 
